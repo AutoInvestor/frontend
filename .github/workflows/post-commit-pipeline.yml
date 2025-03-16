@@ -145,7 +145,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Adjust the path and pattern to suit your environment
           sed -i "/docker.io\/polpinol98\/autoinvestor-${{ github.event.repository.name }}/ {N;s/\(version:[[:space:]]*\).*/\1${NEW_VERSION}/;}" config/deployment-config.yaml
 
           git add config/deployment-config.yaml
