@@ -114,7 +114,7 @@ function HowItWorks() {
             <h2 className={"text-center text-4xl font-bold py-6 mt-6"}>How it works</h2>
             <div className={"flex gap-y-4 flex-col"}>
                 {items.map((item) => (
-                    <div className={"flex flex-row"}>
+                    <div className={"flex flex-row items-center"}>
                         <div className={"rounded-xl bg-neutral-100 w-fit box-border p-3"}>
                             {item.icon}
                         </div>
