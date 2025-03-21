@@ -1,0 +1,18 @@
+name: Test workflow
+
+on:
+  push:
+    branches:
+      - alvaro-test
+
+permissions:
+  contents: write
+
+jobs:
+  build_test_release:
+    uses: AutoInvestor/infra-gitops/.github/workflows/update-version.yml@AIR-9_move-to-helm
+    with:
+      image: autoinvestor-frontend
+      version: 12.3.4
+    secrets: inherit
+
