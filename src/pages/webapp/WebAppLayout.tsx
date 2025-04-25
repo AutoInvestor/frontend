@@ -18,7 +18,7 @@ function WebAppLayout() {
                         {elements.map((item) => {
                             const isActive = location.pathname === item.path;
                             return (
-                                <li><a className={`inline-block py-2 px-3 ${isActive ? "text-black" : "text-neutral-500 hover:text-black"}`} href={item.path}>{item.name}</a></li>
+                                <li key={item.name}><a className={`inline-block py-2 px-3 ${isActive ? "text-black" : "text-neutral-500 hover:text-black"}`} href={item.path}>{item.name}</a></li>
                             )
                         })}
                     </ul>
