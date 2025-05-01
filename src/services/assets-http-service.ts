@@ -22,4 +22,15 @@ export class AssetsHttpService extends BaseHttpService {
         }
         throw 'Error';
     }
+
+    public getAllAssets() {
+        //return this.get<Asset[]>('/assets');
+        return Promise.resolve([
+            { assetId: 'c0444ffc-73cb-4226-bf89-add6ab8f17b0', mic: 'XNAS', ticker: 'INTL' },
+            { assetId: '8f7549de-b142-4160-aa6b-cbbdc82a2546', mic: 'XNAS', ticker: 'IDTX' },
+            { assetId: '3abacf7a-4d9d-422c-babe-d53e521378e4', mic: 'BME', ticker: 'TEF' },
+            { assetId: '96dd1bde-2ce8-49eb-8399-093af843b84a', mic: 'XNAS', ticker: 'AMZN' },
+            { assetId: '3abacf7a-4d9d-422c-babe-d53e521378e4', mic: 'XNAS', ticker: 'APPL' },
+        ]);
+    }
 }
