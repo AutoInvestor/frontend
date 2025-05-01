@@ -213,7 +213,7 @@ function SelectAsset({ onAddHolding }: { onAddHolding: (holding: PortfolioHoldin
 }
 
 export function AddHolding({asset, onAddHolding}: { asset: Asset, onAddHolding: (holding: PortfolioHolding) => void }) {
-    const [goal, setGoal] = useState(0)
+    const [goal, setGoal] = useState(1)
     const [open, setOpen] = useState(false);
 
     function onClick(adjustment: number) {
