@@ -1,5 +1,5 @@
 import {BaseHttpService} from "@/services/base-http-service.ts";
-import {Asset} from "@/model/asset.ts";
+import {Asset} from "@/model/Asset.ts";
 
 export class AssetsHttpService extends BaseHttpService {
     public constructor() {
@@ -20,6 +20,9 @@ export class AssetsHttpService extends BaseHttpService {
         if (assetId === 'c0444ffc-73cb-4226-bf89-add6ab8f17b0') {
             return Promise.resolve({ assetId: 'c0444ffc-73cb-4226-bf89-add6ab8f17b0', mic: 'XNAS', ticker: 'INTL', price: 256 });
         }
+        if (assetId === '6dfa3dc4-9b46-4195-a3a0-2039ea6f31b7') {
+            return Promise.resolve({ assetId: '6dfa3dc4-9b46-4195-a3a0-2039ea6f31b7', mic: 'BME', ticker: 'TEF', price: 413 });
+        }
         throw 'Error';
     }
 
@@ -28,7 +31,7 @@ export class AssetsHttpService extends BaseHttpService {
         return Promise.resolve([
             { assetId: 'c0444ffc-73cb-4226-bf89-add6ab8f17b0', mic: 'XNAS', ticker: 'INTL' },
             { assetId: '8f7549de-b142-4160-aa6b-cbbdc82a2546', mic: 'XNAS', ticker: 'IDTX' },
-            { assetId: '3abacf7a-4d9d-422c-babe-d53e521378e4', mic: 'BME', ticker: 'TEF' },
+            { assetId: '6dfa3dc4-9b46-4195-a3a0-2039ea6f31b7', mic: 'BME', ticker: 'TEF' },
             { assetId: '96dd1bde-2ce8-49eb-8399-093af843b84a', mic: 'XNAS', ticker: 'AMZN' },
             { assetId: '3abacf7a-4d9d-422c-babe-d53e521378e4', mic: 'XNAS', ticker: 'APPL' },
         ]);

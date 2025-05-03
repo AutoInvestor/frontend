@@ -1,5 +1,5 @@
 import {BaseHttpService} from "@/services/base-http-service.ts";
-import {PortfolioHolding} from "@/model/portfolio-holding.ts";
+import {PortfolioHolding} from "@/model/PortfolioHolding.ts";
 
 export class PortfolioHttpService extends BaseHttpService {
     public constructor() {
