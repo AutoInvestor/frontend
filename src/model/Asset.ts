@@ -2,5 +2,10 @@ export interface Asset {
     assetId: string;
     ticker: string;
     mic: string;
-    price?: number;
+    price?: AssetPriceData;
+}
+
+export interface AssetPriceData {
+    date: Date;
+    price: number;
 }

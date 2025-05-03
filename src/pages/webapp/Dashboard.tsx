@@ -129,7 +129,7 @@ function Portfolio() {
                     {holdings.map(holding => {
                         const asset = getAsset(holding.assetId);
                         if (asset && asset.price) {
-                            const difference = percentageChange(asset.price, holding.boughtPrice);
+                            const difference = percentageChange(asset.price.price, holding.boughtPrice);
                             return (
                                 <TableRow key={holding.assetId} className={""}>
                                     <TableCell>
@@ -137,8 +137,8 @@ function Portfolio() {
                                         <span className="ps-2 font-medium">{asset.ticker}</span>
                                     </TableCell>
                                     <TableCell>{holding.amount}</TableCell>
-                                    <TableCell>{toUSD(asset.price)}</TableCell>
-                                    <TableCell>{toUSD(asset.price * holding.amount)}</TableCell>
+                                    <TableCell>{toUSD(asset.price.price)}</TableCell>
+                                    <TableCell>{toUSD(asset.price.price * holding.amount)}</TableCell>
                                     <TableCell
                                         className={`text-right font-medium ${difference.includes('-') ? 'text-red-700' : 'text-green-700'}`}>{difference}</TableCell>
                                     <TableCell>
@@ -161,7 +161,7 @@ function Portfolio() {
                         <TableCell>{toUSD(holdings.map(holding => {
                             const asset = getAsset(holding.assetId);
                             if (asset && asset.price) {
-                                return holding.amount * asset.price;
+                                return holding.amount * asset.price.price;
                             }
                             return 0;
                         }).reduce((previous, current) => previous + current, 0))}</TableCell>
