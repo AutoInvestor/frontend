@@ -1,7 +1,7 @@
 export interface Alert {
     type: AlertType;
     assetId: string;
-    date: Date
+    date: Date;
 }
 
 type AlertType =
