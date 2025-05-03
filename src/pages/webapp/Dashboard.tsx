@@ -1,11 +1,11 @@
 import {Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow,} from "@/components/ui/table"
 import {PortfolioHttpService} from "@/services/portfolio-http-service.ts";
-import {useEffect, useState} from "react";
-import {PortfolioHolding} from "@/model/portfolio-holding.ts";
+import {ReactNode, useEffect, useState} from "react";
+import {PortfolioHolding} from "@/model/PortfolioHolding.ts";
 import {AssetsHttpService} from "@/services/assets-http-service.ts";
-import {Asset} from "@/model/asset.ts";
+import {Asset} from "@/model/Asset.ts";
 
-import {PencilIcon, PlusIcon} from "@heroicons/react/16/solid";
+import {PencilIcon} from "@heroicons/react/16/solid";
 
 import {
     Drawer,
@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select"
 
 import {Button} from "@/components/ui/button"
+import {Input} from "@/components/ui/input.tsx";
 
 const portfolioHttpService = new PortfolioHttpService();
 const assetsHttpService = new AssetsHttpService();
@@ -62,18 +63,54 @@ function Portfolio() {
         return assets.find(asset => asset.assetId === assetId);
     }
 
-    useEffect(() => {
-        portfolioHttpService.getPortfolioHoldings()
-            .then(setHoldings)
-            .catch(err => console.error('Error fetching holdings:', err));
-    }, []);
+    const toUSD = (cents: number): string => {
+        return (cents / 100).toLocaleString("en-US", {
+            style: "currency",
+            currency: "USD"
+        })
+    }
+
+    const percentageChange = (actual: number, boughtAt: number): string => {
+        const numericChange = ((actual - boughtAt) / boughtAt) * 100;
+        return `${numericChange < 0 ? '-' : '+'}${Math.abs(numericChange).toFixed(2)}`
+    }
+
+    const onUpdateHolding = async (holding: PortfolioHolding): Promise<void> => {
+        await portfolioHttpService.updateHolding(holding);
+        setHoldings(prevItems => {
+            const index = prevItems.findIndex(item => item.assetId === holding.assetId);
+            const updatedItems = [...prevItems];
+            updatedItems[index] = {...updatedItems[index], ...holding};
+            return updatedItems;
+        });
+    }
+
+    const onAddHolding = async (holding: PortfolioHolding): Promise<void> => {
+        if (holdings.findIndex(item => item.assetId === holding.assetId) !== -1) {
+            return;
+        }
+        await portfolioHttpService.createHolding(holding);
+        setHoldings(prevItems => [...prevItems, holding]);
+        assetsHttpService.getAsset(holding.assetId).then(asset => setAssets(prevItems_1 => [...prevItems_1, asset]));
+    }
+
+    const onDeleteHolding = async (holding: PortfolioHolding): Promise<void> => {
+        await portfolioHttpService.deleteHolding(holding.assetId);
+        setHoldings(prevItems => prevItems.filter(item => item.assetId !== holding.assetId));
+        setAssets(prevItems_1 => prevItems_1.filter(item_1 => item_1.assetId !== holding.assetId));
+    }
 
     useEffect(() => {
-        Promise
-            .all(holdings.map(holding => assetsHttpService.getAsset(holding.assetId)))
-            .then(assets => setAssets(assets))
-            .catch(err => console.error('Error fetching assets:', err));
-    }, [holdings]);
+        portfolioHttpService.getPortfolioHoldings()
+            .then(holdings => {
+                setHoldings(holdings);
+                Promise
+                    .all(holdings.map(holding => assetsHttpService.getAsset(holding.assetId)))
+                    .then(setAssets)
+                    .catch(err => console.error('Error fetching assets:', err));
+            })
+            .catch(err => console.error('Error fetching holdings:', err));
+    }, []);
 
     return (
         <>
@@ -89,83 +126,76 @@ function Portfolio() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {holdings.map((holding) => {
+                    {holdings.map(holding => {
                         const asset = getAsset(holding.assetId);
                         if (asset) {
                             if (asset.price) {
-                                const assetPrice = (asset.price / 100).toFixed(2);
-                                const currentHoldingValue = ((holding.amount * asset.price) / 100).toFixed(2);
-                                const difference = ((asset.price - holding.boughtPrice) / 100).toFixed(2);
+                                const difference = percentageChange(asset.price, holding.boughtPrice);
                                 return (
                                     <TableRow key={holding.assetId} className={""}>
-                                        <TableCell><span className={'text-neutral-400'}>{asset.mic}</span> <span
-                                            className="font-medium">{asset.ticker}</span></TableCell>
+                                        <TableCell>
+                                            <span className={'text-neutral-400'}>{asset.mic}</span>
+                                            <span className="ps-2 font-medium">{asset.ticker}</span>
+                                        </TableCell>
                                         <TableCell>{holding.amount}</TableCell>
-                                        <TableCell>$ {assetPrice}</TableCell>
-                                        <TableCell>$ {currentHoldingValue}</TableCell>
+                                        <TableCell>{toUSD(asset.price)}</TableCell>
+                                        <TableCell>{toUSD(asset.price * holding.amount)}</TableCell>
                                         <TableCell
-                                            className={`text-right font-medium ${parseFloat(difference) < 0 ? 'text-red-700' : 'text-green-700'}`}>{parseFloat(difference) > 0 ? `+${difference}` : `${difference}`}</TableCell>
-                                        <TableCell><DrawerDemo holding={holding} asset={asset} onUpdateHolding={newHolding => {
-                                            const newHoldings = holdings.map(elem => {
-                                                if (elem.assetId === newHolding.assetId) {
-                                                    return new PortfolioHolding(newHolding.assetId, newHolding.amount, newHolding.boughtPrice)
-                                                }
-                                                return elem;
-                                            });
-                                            setHoldings(newHoldings);
-                                        }} onDeleteHolding={() => {
-                                            const newHoldings = holdings.filter(elem => elem.assetId !== holding.assetId);
-                                            setHoldings(newHoldings);
-                                        }}></DrawerDemo></TableCell>
-                                    </TableRow>
-                                )
-                            } else {
-                                return (
-                                    <TableRow key={holding.assetId}>
-                                        <TableCell className="font-medium">{asset.ticker}</TableCell>
-                                        <TableCell>{holding.amount}</TableCell>
-                                        <TableCell colSpan={3}>Total</TableCell>
-                                        <TableCell><DrawerDemo holding={holding} asset={asset} onUpdateHolding={newHolding => {
-                                            const newHoldings = holdings.map(elem => {
-                                                if (elem.assetId === newHolding.assetId) {
-                                                    return new PortfolioHolding(newHolding.assetId, newHolding.amount, newHolding.boughtPrice)
-                                                }
-                                                return elem;
-                                            });
-                                            setHoldings(newHoldings);
-                                        }} onDeleteHolding={() => {
-                                            const newHoldings = holdings.filter(elem => elem.assetId !== holding.assetId);
-                                            setHoldings(newHoldings);
-                                        }}></DrawerDemo></TableCell>
+                                            className={`text-right font-medium ${difference.includes('-') ? 'text-red-700' : 'text-green-700'}`}>{difference}</TableCell>
+                                        <TableCell>
+                                            <AssetDrawer
+                                                holding={holding}
+                                                asset={asset}
+                                                onSubmit={onUpdateHolding}
+                                                onDelete={onDeleteHolding}>
+                                                <PencilIcon className={"size-4"}></PencilIcon>
+                                            </AssetDrawer>
+                                        </TableCell>
                                     </TableRow>
                                 )
                             }
+                            return (
+                                <TableRow key={holding.assetId}>
+                                    <TableCell className="font-medium">{asset.ticker}</TableCell>
+                                    <TableCell>{holding.amount}</TableCell>
+                                    <TableCell colSpan={3}>Total</TableCell>
+                                    <TableCell>
+                                        <AssetDrawer
+                                            holding={holding}
+                                            asset={asset}
+                                            onSubmit={onUpdateHolding}
+                                            onDelete={onDeleteHolding}>
+                                            <PencilIcon className={"size-4"}></PencilIcon>
+                                        </AssetDrawer>
+                                    </TableCell>
+                                </TableRow>
+                            )
                         }
                     })}
                 </TableBody>
                 <TableFooter>
                     <TableRow>
                         <TableCell colSpan={3}>Total</TableCell>
-                        <TableCell>$ {holdings.map(holding => {
+                        <TableCell>{toUSD(holdings.map(holding => {
                             const asset = getAsset(holding.assetId);
                             if (asset && asset.price) {
-                                return (holding.amount * asset.price) / 100;
+                                return holding.amount * asset.price;
                             }
                             return 0;
-                        }).reduce((previous, current) => previous + current, 0).toFixed(2)}</TableCell>
+                        }).reduce((previous, current) => previous + current, 0))}</TableCell>
                         <TableCell colSpan={2}></TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>
             <h2 className={"text-2xl font-medium py-6 mt-6"}>Add new asset</h2>
-            <SelectAsset onAddHolding={holding => {
-                setHoldings(prev => [...prev, holding]);
-            }}></SelectAsset>
+            <HoldingCreator onSubmit={onAddHolding}></HoldingCreator>
         </>
     )
 }
 
-function SelectAsset({ onAddHolding }: { onAddHolding: (holding: PortfolioHolding) => void }) {
+function HoldingCreator({onSubmit}: {
+    onSubmit: (holding: PortfolioHolding) => Promise<void>
+}) {
     const [availableAssets, setAvailableAssets] = useState<Asset[]>([]);
     const [asset, setAsset] = useState<Asset>();
 
@@ -197,35 +227,50 @@ function SelectAsset({ onAddHolding }: { onAddHolding: (holding: PortfolioHoldin
                 <SelectContent>
                     {Array.from(groupByMap(availableAssets, "mic").entries()).map(([key, assets]) => {
                         return (
-                            <SelectGroup>
+                            <SelectGroup key={key}>
                                 <SelectLabel>{key}</SelectLabel>
                                 {assets.map(asset => (
-                                    <SelectItem value={asset.assetId}>{asset.ticker}</SelectItem>
+                                    <SelectItem key={asset.assetId} value={asset.assetId}>{asset.ticker}</SelectItem>
                                 ))}
                             </SelectGroup>
                         )
                     })}
                 </SelectContent>
             </Select>
-            {asset ? <AddHolding asset={asset} onAddHolding={onAddHolding}/> : ""}
+            {asset ? <AssetDrawer asset={asset} onSubmit={onSubmit}>
+                <Button>+ Add holding</Button>
+            </AssetDrawer> : ""}
         </div>
     )
 }
 
-export function AddHolding({asset, onAddHolding}: { asset: Asset, onAddHolding: (holding: PortfolioHolding) => void }) {
-    const [goal, setGoal] = useState(1)
+export function AssetDrawer({holding, asset, onSubmit, onDelete, children}: {
+    holding?: PortfolioHolding,
+    asset: Asset,
+    onSubmit: (holding: PortfolioHolding) => Promise<void>,
+    onDelete?: (holding: PortfolioHolding) => Promise<void>,
+    children: ReactNode
+}) {
+    const [goal, setGoal] = useState(holding ? holding.amount : 1)
+    const [boughtAt, setBoughtAt] = useState(holding ? holding.boughtPrice / 100 : 0)
     const [open, setOpen] = useState(false);
+
+    if (holding && !onDelete) {
+        throw "No delete callback defined when editing holding";
+    }
 
     function onClick(adjustment: number) {
         setGoal(Math.max(1, goal + adjustment))
     }
 
     return (
-        <Drawer open={open} onOpenChange={setOpen} onClose={() => {
-            setGoal(1)
+        <Drawer open={open} onOpenChange={isOpen => {
+            setOpen(isOpen);
+            setGoal(holding ? holding.amount : 1);
+            setBoughtAt(holding ? holding.boughtPrice / 100 : 0)
         }}>
             <DrawerTrigger asChild>
-                <Button><PlusIcon className={"size-4"}></PlusIcon> Add holding</Button>
+                {children}
             </DrawerTrigger>
             <DrawerContent>
                 <div className="mx-auto w-full max-w-sm">
@@ -263,89 +308,29 @@ export function AddHolding({asset, onAddHolding}: { asset: Asset, onAddHolding: 
                                 <span className="sr-only">Increase</span>
                             </Button>
                         </div>
-                    </div>
-                    <DrawerFooter>
-                        <Button onClick={() => {
-                            const holding = new PortfolioHolding(asset.assetId, goal, 0);
-                            portfolioHttpService.createHolding(holding).then(() => {
-                                onAddHolding(holding)
-                                setOpen(false)
-                            })
-                        }}>Submit</Button>
-                        <DrawerClose asChild>
-                            <Button variant="outline">Cancel</Button>
-                        </DrawerClose>
-                    </DrawerFooter>
-                </div>
-            </DrawerContent>
-        </Drawer>
-    )
-}
-
-export function DrawerDemo({holding, asset, onUpdateHolding, onDeleteHolding}: { holding: PortfolioHolding, asset: Asset, onUpdateHolding: (holding: PortfolioHolding) => void, onDeleteHolding: () => void }) {
-    const [goal, setGoal] = useState(holding.amount)
-    const [open, setOpen] = useState(false);
-
-    function onClick(adjustment: number) {
-        setGoal(Math.max(0, goal + adjustment))
-    }
-
-    return (
-        <Drawer open={open} onOpenChange={setOpen} onClose={() => setGoal(holding.amount)}>
-            <DrawerTrigger asChild>
-                <PencilIcon className={"size-4"}></PencilIcon>
-            </DrawerTrigger>
-            <DrawerContent>
-                <div className="mx-auto w-full max-w-sm">
-                    <DrawerHeader>
-                        <DrawerTitle>{asset.ticker}</DrawerTitle>
-                        <DrawerDescription>{asset.mic}</DrawerDescription>
-                    </DrawerHeader>
-                    <div className="p-4 pb-0">
-                        <div className="flex items-center justify-center space-x-2">
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8 shrink-0 rounded-full"
-                                onClick={() => onClick(-1)}
-                                disabled={goal <= 0}
-                            >
-                                <Minus/>
-                                <span className="sr-only">Decrease</span>
-                            </Button>
-                            <div className="flex-1 text-center">
-                                <div className="text-7xl font-bold tracking-tighter">
-                                    {goal}
-                                </div>
-                                <div className="text-[0.70rem] uppercase text-muted-foreground">
-                                    Shares
-                                </div>
-                            </div>
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8 shrink-0 rounded-full"
-                                onClick={() => onClick(1)}
-                            >
-                                <Plus/>
-                                <span className="sr-only">Increase</span>
-                            </Button>
+                        <div>
+                            <Input value={boughtAt} onChange={event => setBoughtAt(parseFloat(event.target.value))} className={"mt-5"} type="number" min={0} placeholder="Bought price" />
                         </div>
                     </div>
                     <DrawerFooter>
                         <Button onClick={() => {
-                            holding.amount = goal;
-                            portfolioHttpService.updateHolding(holding).then(() => {
-                                onUpdateHolding(holding)
-                                setOpen(false)
+                            const newHolding: PortfolioHolding = {
+                                assetId: asset.assetId,
+                                amount: goal,
+                                boughtPrice: parseFloat(boughtAt.toFixed(2)) * 100
+                            }
+                            onSubmit(newHolding).then(() => {
+                                setOpen(false);
                             })
                         }}>Submit</Button>
-                        <Button variant={"destructiveOutline"} onClick={() => {
-                            portfolioHttpService.deleteHolding(holding.assetId).then(() => {
-                                onDeleteHolding()
-                                setOpen(false)
-                            })
-                        }}>Remove</Button>
+                        {holding ? <Button
+                            variant={"destructiveOutline"}
+                            onClick={() => {
+                                if (onDelete) {
+                                    onDelete(holding).then(() => setOpen(false));
+                                }
+                            }}>Remove</Button> : ''
+                        }
                         <DrawerClose asChild>
                             <Button variant="outline">Cancel</Button>
                         </DrawerClose>
