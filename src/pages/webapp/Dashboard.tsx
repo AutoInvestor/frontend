@@ -128,37 +128,19 @@ function Portfolio() {
                 <TableBody>
                     {holdings.map(holding => {
                         const asset = getAsset(holding.assetId);
-                        if (asset) {
-                            if (asset.price) {
-                                const difference = percentageChange(asset.price, holding.boughtPrice);
-                                return (
-                                    <TableRow key={holding.assetId} className={""}>
-                                        <TableCell>
-                                            <span className={'text-neutral-400'}>{asset.mic}</span>
-                                            <span className="ps-2 font-medium">{asset.ticker}</span>
-                                        </TableCell>
-                                        <TableCell>{holding.amount}</TableCell>
-                                        <TableCell>{toUSD(asset.price)}</TableCell>
-                                        <TableCell>{toUSD(asset.price * holding.amount)}</TableCell>
-                                        <TableCell
-                                            className={`text-right font-medium ${difference.includes('-') ? 'text-red-700' : 'text-green-700'}`}>{difference}</TableCell>
-                                        <TableCell>
-                                            <AssetDrawer
-                                                holding={holding}
-                                                asset={asset}
-                                                onSubmit={onUpdateHolding}
-                                                onDelete={onDeleteHolding}>
-                                                <PencilIcon className={"size-4"}></PencilIcon>
-                                            </AssetDrawer>
-                                        </TableCell>
-                                    </TableRow>
-                                )
-                            }
+                        if (asset && asset.price) {
+                            const difference = percentageChange(asset.price, holding.boughtPrice);
                             return (
-                                <TableRow key={holding.assetId}>
-                                    <TableCell className="font-medium">{asset.ticker}</TableCell>
+                                <TableRow key={holding.assetId} className={""}>
+                                    <TableCell>
+                                        <span className={'text-neutral-400'}>{asset.mic}</span>
+                                        <span className="ps-2 font-medium">{asset.ticker}</span>
+                                    </TableCell>
                                     <TableCell>{holding.amount}</TableCell>
-                                    <TableCell colSpan={3}>Total</TableCell>
+                                    <TableCell>{toUSD(asset.price)}</TableCell>
+                                    <TableCell>{toUSD(asset.price * holding.amount)}</TableCell>
+                                    <TableCell
+                                        className={`text-right font-medium ${difference.includes('-') ? 'text-red-700' : 'text-green-700'}`}>{difference}</TableCell>
                                     <TableCell>
                                         <AssetDrawer
                                             holding={holding}
@@ -171,6 +153,7 @@ function Portfolio() {
                                 </TableRow>
                             )
                         }
+                        throw `Error with holding asset ${holding.assetId}`
                     })}
                 </TableBody>
                 <TableFooter>
@@ -309,7 +292,8 @@ export function AssetDrawer({holding, asset, onSubmit, onDelete, children}: {
                             </Button>
                         </div>
                         <div>
-                            <Input value={boughtAt} onChange={event => setBoughtAt(parseFloat(event.target.value))} className={"mt-5"} type="number" min={0} placeholder="Bought price" />
+                            <Input value={boughtAt} onChange={event => setBoughtAt(parseFloat(event.target.value))}
+                                   className={"mt-5"} type="number" min={0} placeholder="Bought price"/>
                         </div>
                     </div>
                     <DrawerFooter>
