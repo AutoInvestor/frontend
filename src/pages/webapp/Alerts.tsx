@@ -71,7 +71,6 @@ function RecentAlerts() {
                         </div>
                     )
                 }
-                throw `Error with alert asset ${alert.assetId}`;
             })}
         </div>
     )

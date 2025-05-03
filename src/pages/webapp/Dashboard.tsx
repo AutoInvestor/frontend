@@ -153,7 +153,6 @@ function Portfolio() {
                                 </TableRow>
                             )
                         }
-                        throw `Error with holding asset ${holding.assetId}`
                     })}
                 </TableBody>
                 <TableFooter>
@@ -297,7 +296,7 @@ export function AssetDrawer({holding, asset, onSubmit, onDelete, children}: {
                         </div>
                     </div>
                     <DrawerFooter>
-                        <Button onClick={() => {
+                        <Button disabled={boughtAt === 0} onClick={() => {
                             const newHolding: PortfolioHolding = {
                                 assetId: asset.assetId,
                                 amount: goal,
