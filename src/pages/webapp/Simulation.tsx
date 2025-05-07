@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/chart"
 import {Decision} from "@/model/Decision.ts";
 import {DecisionHttpService} from "@/services/decision-http-service.ts";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
 
 const portfolioHttpService = new PortfolioHttpService();
 const assetsHttpService = new AssetsHttpService();
@@ -185,12 +186,9 @@ async function createChartData(
         current <= end;
         current = addDays(current, 1)
     ) {
-        console.log(current);
         const decisionsAtDay = decisions
             .filter(decision => dateBetween(decision.date, current, addDays(current, 1)))
             .sort((a, b) => a.date.getTime() - b.date.getTime());
-
-        console.log(decisionsAtDay);
 
         for (const decision of decisionsAtDay) {
             const priceAtDecision = await getPrice(decision.date);
@@ -215,19 +213,47 @@ async function createChartData(
     return entryCollection;
 }
 
+interface MoneyChartData extends BaseChartData {
+    select: string;
+}
+
 function SimulationResults({simulationConfig}: {
     simulationConfig: SimulationConfig | undefined;
 }) {
-    const [overviewData, setOverviewData] = useState<ChartEntryCollection>(new ChartEntryCollection());
     const [assetsData, setAssetsData] = useState<AssetChartEntryCollection[]>([]);
-    const [selectedTab, setSelectedTab] = useState(0);
+    const [chartData, setChartData] = useState<MoneyChartData[]>([]);
 
-    const normalize = (map: ChartEntryCollection) => {
-        return Array.from(map.entries()).map(([key, value]) => ({
+    useEffect(() => {
+        const map = new ChartEntryCollection();
+        assetsData.forEach(assetData => {
+            assetData.data.forEach((value, key) => {
+                const currentValue = map.get(key) || {autoinvested: 0, noAutoinvested: 0};
+                map.set(key, {
+                    autoinvested: currentValue.autoinvested + value.autoinvested,
+                    noAutoinvested: currentValue.noAutoinvested + value.noAutoinvested
+                });
+            })
+        })
+        const overviewData = Array.from(map.entries()).map(([key, value]) => ({
             date: key,
             autoinvested: value.autoinvested,
-            noAutoinvested: value.noAutoinvested
-        }));
+            noAutoinvested: value.noAutoinvested,
+            select: "Overview"
+        }))
+        setChartData([...normalise(assetsData), ...overviewData]);
+    }, [assetsData]);
+
+    const normalise = (assets: AssetChartEntryCollection[]) => {
+        return assets.map((asset: AssetChartEntryCollection) => {
+            return Array.from(asset.data.entries()).map(([key, value]) => {
+                return {
+                    date: key,
+                    autoinvested: value.autoinvested,
+                    noAutoinvested: value.noAutoinvested,
+                    select: asset.ticker
+                } as MoneyChartData;
+            })
+        }).reduce((previous, current) => [...previous, ...current], []);
     }
 
     useEffect(() => {
@@ -250,18 +276,6 @@ function SimulationResults({simulationConfig}: {
                 } as AssetChartEntryCollection;
             }));
             setAssetsData(assetsData);
-
-            const map = new ChartEntryCollection();
-            assetsData.forEach(assetData => {
-                assetData.data.forEach((value, key) => {
-                    const currentValue = map.get(key) || {autoinvested: 0, noAutoinvested: 0};
-                    map.set(key, {
-                        autoinvested: currentValue.autoinvested + value.autoinvested,
-                        noAutoinvested: currentValue.noAutoinvested + value.noAutoinvested
-                    });
-                })
-            })
-            setOverviewData(map);
         }
 
         if (simulationConfig) fetchData(simulationConfig).then();
@@ -270,53 +284,100 @@ function SimulationResults({simulationConfig}: {
     return (
         <>
             {simulationConfig && <div className={"my-5"}>
-                <nav className={"pb-5"}>
-                    <ul className={"flex flex-row gap-2"}>
-                        <li>
-                            <Button
-                                variant={"outline"}
-                                className={`inline-block ${selectedTab === 0 ? "text-black" : "text-neutral-500 hover:text-black"}`}
-                                onClick={() => setSelectedTab(0)}>Overview</Button>
-                        </li>
-                        {assetsData.map((item, index) => {
-                            const isActive = selectedTab === index + 1;
-                            return (
-                                <li key={index + 1}>
-                                    <Button
-                                        variant={"outline"}
-                                        className={`inline-block ${isActive ? "text-black" : "text-neutral-500 hover:text-black"}`}
-                                        onClick={() => setSelectedTab(index + 1)}>{item.mic} {item.ticker}</Button>
-                                </li>
-                            )
-                        })}
-                    </ul>
-                </nav>
-                {selectedTab === 0
-                    ? <DataChart data={normalize(overviewData)}/>
-                    : <DataChart data={normalize(assetsData[selectedTab - 1].data)}/>
-                }
+                <DataChart
+                    data={chartData}
+                    filterBy={(item) => {
+                        return item.select
+                    }}
+                    sortByFilterBy={(a, b) => {
+                        if (a === "Overview") return -1;
+                        if (b === "Overview") return 1;
+                        return a.localeCompare(b);
+                    }}/>
             </div>}
         </>
     )
 }
 
-function DataChart({data}: { data: { date: string, autoinvested: number, noAutoinvested: number } [] }) {
+interface BaseChartData {
+    date: string,
+    autoinvested: number,
+    noAutoinvested: number
+}
+
+function DataChart<T extends BaseChartData>
+({
+     data,
+     filterBy,
+     sortByFilterBy
+ }: {
+    data: T[],
+    filterBy?: (item: T) => string,
+    sortByFilterBy?: (a: string, b: string) => number
+}) {
+    const [selectedData, setSelectedData] = useState<string>();
+    const [possibleValues, setPossibleValues] = useState<string[]>([]);
+    const [filteredData, setFilteredData] = useState<BaseChartData[]>([]);
+
+    useEffect(() => {
+        if (filterBy) {
+            let uniqueValues = [...new Set(data.map(filterBy))];
+            if (sortByFilterBy) uniqueValues = uniqueValues.sort(sortByFilterBy)
+            setPossibleValues(uniqueValues);
+            setSelectedData(uniqueValues[0]);
+        }
+    }, [data, filterBy, sortByFilterBy]);
+
+    useEffect(() => {
+        let filtered;
+        if (filterBy) {
+            filtered = data.filter(item => filterBy(item) === selectedData)
+                .map(item => ({
+                    date: item.date,
+                    autoinvested: item.autoinvested,
+                    noAutoinvested: item.noAutoinvested
+                } as BaseChartData));
+        } else {
+            filtered = data.map(item => ({
+                date: item.date,
+                autoinvested: item.autoinvested,
+                noAutoinvested: item.noAutoinvested
+            } as BaseChartData));
+        }
+        setFilteredData(filtered);
+    }, [data, selectedData, filterBy]);
+
     return (
         <Card>
             <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
                 <div className="grid flex-1 gap-1 text-center sm:text-left">
-                    <CardTitle>Area Chart - Interactive</CardTitle>
+                    <CardTitle>Simulation result</CardTitle>
                     <CardDescription>
-                        Showing total visitors for the last 3 months
+                        Showing how portfolio could have behaved if stock operations were instructed by Autoinvestor
                     </CardDescription>
                 </div>
+                {possibleValues.length > 0 && <Select value={selectedData} onValueChange={setSelectedData}>
+                    <SelectTrigger
+                        className="w-[160px] rounded-lg sm:ml-auto"
+                        aria-label="Select a value"
+                    >
+                        <SelectValue placeholder={possibleValues[0]}/>
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                        {possibleValues.map((value, index) => (
+                            <SelectItem key={index} value={value} className="rounded-lg">
+                                {value}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>}
             </CardHeader>
             <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
                 <ChartContainer
                     config={chartConfig}
                     className="aspect-auto h-[250px] w-full"
                 >
-                    <AreaChart data={data}>
+                    <AreaChart data={filteredData}>
                         <CartesianGrid vertical={false}/>
                         <XAxis
                             dataKey="date"
@@ -337,17 +398,34 @@ function DataChart({data}: { data: { date: string, autoinvested: number, noAutoi
                             axisLine={false}
                             tickMargin={8}
                             tickCount={3}
+                            tickFormatter={(value) => {
+                                const cents = Number(value);
+                                return (cents / 100).toLocaleString("en-US", {
+                                    style: "currency",
+                                    currency: "USD"
+                                })
+                            }}
                         />
                         <ChartTooltip
                             cursor={false}
                             content={
                                 <ChartTooltipContent
-                                    labelFormatter={(value) => {
-                                        return new Date(value).toLocaleDateString("en-US", {
-                                            month: "short",
-                                            day: "numeric",
-                                        })
-                                    }}
+                                    formatter={(value, name) => (
+                                        <>
+                                            <div
+                                                className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
+                                                style={{ backgroundColor: `var(--color-${name})` }}
+                                            />
+                                            {chartConfig[name as keyof typeof chartConfig]?.label || name}
+                                            <div
+                                                className="ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums text-foreground">
+                                                {(Number(value) / 100).toLocaleString("en-US", {
+                                                    style: "currency",
+                                                    currency: "USD"
+                                                })}
+                                            </div>
+                                        </>
+                                    )}
                                     indicator="dot"
                                 />
                             }
@@ -405,11 +483,11 @@ function DataChart({data}: { data: { date: string, autoinvested: number, noAutoi
 const chartConfig = {
     autoinvested: {
         label: "Autoinvested",
-        color: "hsl(var(--chart-1))",
+        color: "hsl(var(--chart-blue-1))",
     },
     noAutoinvested: {
         label: "No Autoinvested",
-        color: "hsl(var(--chart-2))",
+        color: "hsl(var(--chart-blue-2))",
     },
 } satisfies ChartConfig
 
