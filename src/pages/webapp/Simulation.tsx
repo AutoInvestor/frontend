@@ -1,8 +1,7 @@
-import {Input} from "@/components/ui/input.tsx";
 import {WalletIcon} from "@heroicons/react/16/solid";
 import {Switch} from "@/components/ui/switch.tsx";
 import {Button} from "@/components/ui/button.tsx";
-import {useEffect, useRef, useState} from "react";
+import {useEffect, useState} from "react";
 import {PortfolioHttpService} from "@/services/portfolio-http-service.ts";
 import {AssetsHttpService} from "@/services/assets-http-service.ts";
 import {Badge} from "@/components/ui/badge.tsx";
@@ -20,10 +19,16 @@ import {
 import {Decision} from "@/model/Decision.ts";
 import {DecisionHttpService} from "@/services/decision-http-service.ts";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
+import {UsersHttpService} from "@/services/users-http-service.ts";
+import {DatePickerRange} from "@/components/DatePickerRange.tsx";
+import {DateRange} from "react-day-picker";
+import {addDays, endOfDay, isWithinInterval, startOfDay} from "date-fns";
+import {ToggleGroup, ToggleGroupItem} from "@/components/ui/toggle-group.tsx";
 
 const portfolioHttpService = new PortfolioHttpService();
 const assetsHttpService = new AssetsHttpService();
 const decisionHttpService = new DecisionHttpService();
+const usersHttpService = new UsersHttpService();
 
 interface SimulationConfig {
     fromDate: Date;
@@ -60,19 +65,12 @@ function Simulation() {
     )
 }
 
-function parseDateFromInput(inputValue: string): Date {
-    const [year, month, day] = inputValue.split('-').map(Number);
-    return new Date(year, month - 1, day); // month es base 0
-}
-
 function SimulationConfig({setSimulationConfig}: {
     setSimulationConfig: (simulationItems: SimulationConfig) => void
 }) {
-    const fromDate = useRef<HTMLInputElement>(null);
-    const toDate = useRef<HTMLInputElement>(null);
-
-    const [validDates, setValidDates] = useState<boolean>(true);
+    const [dateRange, setDateRange] = useState<DateRange | undefined>();
     const [simulationItems, setSimulationItems] = useState<SimulationItem[]>([]);
+    const [riskLevel, setRiskLevel] = useState(1);
 
     const addPortfolioHoldings = () => {
         portfolioHttpService.getPortfolioHoldings()
@@ -81,29 +79,39 @@ function SimulationConfig({setSimulationConfig}: {
                 amount: holding.amount
             } as SimulationItem)))
             .then(setSimulationItems)
+
+        usersHttpService.getUser().then(user => setRiskLevel(user.riskLevel));
     }
 
     const removePortfolioHoldings = () => {
         setSimulationItems([])
     }
 
-    const checkDatesValidity = () => {
-        if (fromDate.current?.value && toDate.current?.value) {
-            const from = parseDateFromInput(fromDate.current.value);
-            const to = parseDateFromInput(toDate.current.value);
-            setValidDates(to > from);
-        }
-    }
-
     return (
         <>
             <div className={"mt-5"}>
                 <h2 className={"text-2xl font-medium py-6"}>Time period</h2>
-                <div className={"flex gap-4"}>
-                    <Input onChange={() => checkDatesValidity()} ref={fromDate} type={"date"}/>
-                    <Input onChange={() => checkDatesValidity()} ref={toDate} type={"date"}/>
-                </div>
-                {!validDates && (<p className={"text-red-800"}>Invalid dates</p>)}
+                <DatePickerRange value={dateRange} onValueChange={setDateRange}/>
+            </div>
+            <div className={"mt-5"}>
+                <h2 className={"text-2xl font-medium py-6"}>Risk profile</h2>
+                <ToggleGroup
+                    size="lg"
+                    type="single"
+                    variant="outline" value={riskLevel.toString()}
+                    onValueChange={newValue => setRiskLevel(parseInt(newValue))}
+                >
+                    {/* TODO: Fetch risk levels from back */}
+                    {[1, 2, 3, 4].map((riskLevelItem, index) => (
+                        <ToggleGroupItem
+                            key={index}
+                            value={riskLevelItem.toString()}
+                            aria-label={`Toggle risk level ${riskLevelItem}`}
+                        >
+                            {riskLevelItem}
+                        </ToggleGroupItem>
+                    ))}
+                </ToggleGroup>
             </div>
             <div className={"mt-5"}>
                 <h2 className={"text-2xl font-medium py-6"}>Assets selection</h2>
@@ -125,13 +133,16 @@ function SimulationConfig({setSimulationConfig}: {
             </div>
             <div className={"mt-10"}>
                 <Button className={"block mb-2 cursor-pointer"}
-                        disabled={simulationItems.length === 0 || !validDates || !fromDate.current?.value || !toDate.current?.value}
-                        onClick={() => setSimulationConfig({
-                            fromDate: parseDateFromInput(fromDate.current?.value || ''),
-                            toDate: parseDateFromInput(toDate.current?.value || ''),
-                            riskLevel: 3,
-                            simulationItems: simulationItems
-                        })}>
+                        disabled={simulationItems.length === 0 || !dateRange}
+                        onClick={() => {
+                            if (!dateRange?.from || !dateRange?.to) return;
+                            setSimulationConfig({
+                                fromDate: dateRange.from,
+                                toDate: dateRange.to,
+                                riskLevel: riskLevel,
+                                simulationItems: simulationItems
+                            })
+                        }}>
                     Run simulation
                 </Button>
                 {simulationItems.length > 0 && (
@@ -142,28 +153,6 @@ function SimulationConfig({setSimulationConfig}: {
             </div>
         </>
     )
-}
-
-function addDays(date: Date, days: number): Date {
-    const result = new Date(date);
-    result.setDate(result.getDate() + days);
-    return result;
-}
-
-function endOfDay(date: Date): Date {
-    const result = new Date(date);
-    result.setHours(23, 59, 59, 999);
-    return result;
-}
-
-function startOfDay(date: Date): Date {
-    const result = new Date(date);
-    result.setHours(0, 0, 0, 0);
-    return result;
-}
-
-function dateBetween(date: Date, min: Date, max: Date): boolean {
-    return date < max && date > min;
 }
 
 async function createChartData(
@@ -187,7 +176,7 @@ async function createChartData(
         current = addDays(current, 1)
     ) {
         const decisionsAtDay = decisions
-            .filter(decision => dateBetween(decision.date, current, addDays(current, 1)))
+            .filter(decision => isWithinInterval(decision.date, {start: current, end: addDays(current, 1)}))
             .sort((a, b) => a.date.getTime() - b.date.getTime());
 
         for (const decision of decisionsAtDay) {
@@ -349,7 +338,7 @@ function DataChart<T extends BaseChartData>
 
     return (
         <Card>
-            <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
+            <CardHeader className="flex items-center gap-4 space-y-0 border-b py-5 sm:flex-row flex-col">
                 <div className="grid flex-1 gap-1 text-center sm:text-left">
                     <CardTitle>Simulation result</CardTitle>
                     <CardDescription>
@@ -358,7 +347,7 @@ function DataChart<T extends BaseChartData>
                 </div>
                 {possibleValues.length > 0 && <Select value={selectedData} onValueChange={setSelectedData}>
                     <SelectTrigger
-                        className="w-[160px] rounded-lg sm:ml-auto"
+                        className="sm:w-[160px] w-full rounded-lg sm:ml-auto"
                         aria-label="Select a value"
                     >
                         <SelectValue placeholder={possibleValues[0]}/>
@@ -414,7 +403,7 @@ function DataChart<T extends BaseChartData>
                                         <>
                                             <div
                                                 className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
-                                                style={{ backgroundColor: `var(--color-${name})` }}
+                                                style={{backgroundColor: `var(--color-${name})`}}
                                             />
                                             {chartConfig[name as keyof typeof chartConfig]?.label || name}
                                             <div
