@@ -5,18 +5,10 @@ export abstract class BaseHttpService {
         this.baseUrl = baseUrl;
     }
 
-    private async getAuthHeaders(): Promise<HeadersInit> {
-        const token = localStorage.getItem('token'); // or however you manage auth
-        return {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-        };
-    }
-
     protected async get<T>(endpoint: string): Promise<T> {
         const response = await fetch(`${this.baseUrl}${endpoint}`, {
             method: 'GET',
-            //headers: await this.getAuthHeaders(),
+            credentials: "include"
         });
         return this.handleResponse<T>(response);
     }
@@ -24,7 +16,10 @@ export abstract class BaseHttpService {
     protected async post<T, B = unknown>(endpoint: string, body: B): Promise<T> {
         const response = await fetch(`${this.baseUrl}${endpoint}`, {
             method: 'POST',
-            headers: await this.getAuthHeaders(),
+            credentials: "include",
+            headers: {
+                'Content-Type': 'application/json',
+            },
             body: JSON.stringify(body),
         });
         return this.handleResponse<T>(response);
@@ -33,7 +28,10 @@ export abstract class BaseHttpService {
     protected async put<T, B = unknown>(endpoint: string, body: B): Promise<T> {
         const response = await fetch(`${this.baseUrl}${endpoint}`, {
             method: 'PUT',
-            headers: await this.getAuthHeaders(),
+            credentials: "include",
+            headers: {
+                'Content-Type': 'application/json',
+            },
             body: JSON.stringify(body),
         });
         return this.handleResponse<T>(response);
@@ -42,7 +40,7 @@ export abstract class BaseHttpService {
     protected async delete<T>(endpoint: string): Promise<T> {
         const response = await fetch(`${this.baseUrl}${endpoint}`, {
             method: 'DELETE',
-            headers: await this.getAuthHeaders(),
+            credentials: "include"
         });
         return this.handleResponse<T>(response);
     }

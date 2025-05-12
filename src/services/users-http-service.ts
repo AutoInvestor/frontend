@@ -7,7 +7,6 @@ export class UsersHttpService extends BaseHttpService {
     }
 
     public getUser(): Promise<User> {
-        //return this.get<User>(`/user`);
-        return Promise.resolve({ email: "johndoe@gmail.com", firstName: "John", lastName: "Doe", riskLevel: 2 });
+        return this.get<User>(`/user`);
     }
 }
