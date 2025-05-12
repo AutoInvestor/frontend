@@ -97,7 +97,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}            .
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Push Docker Image (legacy)
         if: steps.version_increment.outputs.bump != 'none'
