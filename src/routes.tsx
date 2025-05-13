@@ -8,17 +8,17 @@ import News from "@/pages/webapp/News.tsx";
 import WebAppLayout from "@/pages/webapp/WebAppLayout.tsx";
 
 const router = createBrowserRouter([
-    { path: "/", element: <Landing /> },
+    {path: "/", element: <Landing/>},
     {
-        element: <WebAppLayout />,
+        element: <WebAppLayout/>,
         children: [
-            { path: "/dashboard", element: <Dashboard /> },
-            { path: "/news", element: <News /> },
-            { path: "/alerts", element: <Alerts /> },
-            { path: "/simulation", element: <Simulation /> },
+            {path: "/dashboard", element: <Dashboard/>},
+            {path: "/news", element: <News/>},
+            {path: "/alerts", element: <Alerts/>},
+            {path: "/simulation", element: <Simulation/>},
         ],
     },
-    { path: "*", element: <NotFound /> },
+    {path: "*", element: <NotFound/>},
 ]);
 
 export default router;
