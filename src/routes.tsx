@@ -6,11 +6,16 @@ import Alerts from "@/pages/webapp/Alerts.tsx";
 import Simulation from "@/pages/webapp/Simulation.tsx";
 import News from "@/pages/webapp/News.tsx";
 import WebAppLayout from "@/pages/webapp/WebAppLayout.tsx";
+import {RequireAuth} from "@/components/RequireAuth.tsx";
 
 const router = createBrowserRouter([
     {path: "/", element: <Landing/>},
     {
-        element: <WebAppLayout/>,
+        element: (
+            <RequireAuth>
+                <WebAppLayout/>
+            </RequireAuth>
+        ),
         children: [
             {path: "/dashboard", element: <Dashboard/>},
             {path: "/news", element: <News/>},
