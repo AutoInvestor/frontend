@@ -1,4 +1,4 @@
-import {Outlet, useLocation} from "react-router-dom";
+import {Link, Outlet, useLocation} from "react-router-dom";
 import {UsersHttpService} from "@/services/users-http-service.ts";
 import {useEffect, useState} from "react";
 import {User} from "@/model/User.ts";
@@ -30,7 +30,7 @@ function WebAppLayout() {
                         {elements.map((item) => {
                             const isActive = location.pathname === item.path;
                             return (
-                                <li key={item.name}><a className={`inline-block py-2 px-3 ${isActive ? "text-black" : "text-neutral-500 hover:text-black"}`} href={item.path}>{item.name}</a></li>
+                                <li key={item.name}><Link className={`inline-block py-2 px-3 ${isActive ? "text-black" : "text-neutral-500 hover:text-black"}`} to={item.path}>{item.name}</Link></li>
                             )
                         })}
                     </ul>
