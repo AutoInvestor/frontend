@@ -38,7 +38,7 @@ function Jumbotron() {
                     <p className={"text-neutral-500"}>Track, analyze, and optimize your investments in one powerful dashboard. Get real-time market insights and personalized alerts to make smarter investment decisions.</p>
                 </div>
             </div>
-            <a href="/api/auth/login"><Button className="cursor-pointer">Start free trial</Button></a>
+            <a href="/api/oauth2/authorization/okta"><Button className="cursor-pointer">Start free trial</Button></a>
         </>
     )
 }
