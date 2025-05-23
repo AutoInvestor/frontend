@@ -6,10 +6,13 @@ import {
     ChartBarSquareIcon,
     LightBulbIcon, StarIcon,
     UserCircleIcon,
-    WalletIcon
+    WalletIcon,
+    ArrowRightIcon
 } from "@heroicons/react/16/solid";
 import {Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious} from "@/components/ui/carousel.tsx";
 import {Separator} from "@/components/ui/separator.tsx";
+import useAuth from "@/hooks/useAuth.ts";
+import {Link} from "react-router-dom";
 
 function Landing() {
     return (
@@ -28,6 +31,8 @@ function Landing() {
 }
 
 function Jumbotron() {
+    const {isAuthenticated} = useAuth();
+
     return (
         <>
             <div className="flex flex-wrap py-16">
@@ -38,7 +43,9 @@ function Jumbotron() {
                     <p className={"text-neutral-500"}>Track, analyze, and optimize your investments in one powerful dashboard. Get real-time market insights and personalized alerts to make smarter investment decisions.</p>
                 </div>
             </div>
-            <a href="/api/oauth2/authorization/okta"><Button className="cursor-pointer">Start free trial</Button></a>
+            {!isAuthenticated
+                ? <a href="/api/oauth2/authorization/okta"><Button className="cursor-pointer">Start free trial</Button></a>
+                : <Link className={"flex items-center"} to={"/dashboard"}>Go to your dashboard <ArrowRightIcon className={"ms-2 inline-block size-6"}/></Link>}
         </>
     )
 }
