@@ -9,4 +9,8 @@ export class UsersHttpService extends BaseHttpService {
     public getUser(): Promise<User> {
         return this.get<User>(`/user`);
     }
+
+    public updateUser(user: User): Promise<void> {
+        return this.put<void>(`/user`, user);
+    }
 }
