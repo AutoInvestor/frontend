@@ -7,6 +7,7 @@ import Simulation from "@/pages/webapp/Simulation.tsx";
 import News from "@/pages/webapp/News.tsx";
 import WebAppLayout from "@/pages/webapp/WebAppLayout.tsx";
 import {RequireAuth} from "@/components/RequireAuth.tsx";
+import Profile from "@/pages/webapp/Profile.tsx";
 
 const router = createBrowserRouter([
     {path: "/", element: <Landing/>},
@@ -23,6 +24,7 @@ const router = createBrowserRouter([
             {path: "/simulation", element: <Simulation/>},
         ],
     },
+    {path: "/profile", element: <RequireAuth><Profile/></RequireAuth>},
     {path: "*", element: <NotFound/>},
 ]);
 
