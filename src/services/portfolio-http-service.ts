@@ -6,12 +6,6 @@ export class PortfolioHttpService extends BaseHttpService {
         super();
     }
 
-    private getRandomInt(min: number, max: number): number {
-        const lower = Math.ceil(min);
-        const upper = Math.floor(max);
-        return Math.floor(Math.random() * (upper - lower + 1)) + lower;
-    }
-
     public getPortfolioHoldings(): Promise<PortfolioHolding[]> {
         return this.get<PortfolioHolding[]>(`/portfolio/holdings`);
     }
