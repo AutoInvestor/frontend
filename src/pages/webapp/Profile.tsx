@@ -5,6 +5,7 @@ import {ToggleGroup, ToggleGroupItem} from "@/components/ui/toggle-group.tsx";
 import {Button} from "@/components/ui/button.tsx";
 import {Link} from "react-router-dom";
 import {ArrowTrendingUpIcon} from "@heroicons/react/16/solid";
+import {Input} from "@/components/ui/input.tsx";
 
 const usersHttpService = new UsersHttpService();
 
@@ -27,6 +28,12 @@ export default function Profile() {
                 </Link>
             </div>
             <h1 className={"text-4xl font-bold py-6 mt-6"}>Profile</h1>
+            <h2 className={"text-2xl font-medium py-6"}>Personal information</h2>
+            <Input type="email" disabled={true} value={user.email} />
+            <div className={"flex flex-row gap-4 mt-4"}>
+                <Input type="firstName" disabled={true} value={user.firstName} />
+                <Input type="lastName" disabled={true} value={user.lastName} />
+            </div>
             <h2 className={"text-2xl font-medium py-6"}>Risk profile</h2>
             <ToggleGroup
                 size="lg"
@@ -45,11 +52,12 @@ export default function Profile() {
                     </ToggleGroupItem>
                 ))}
             </ToggleGroup>
-            <Button className={"block mt-5 cursor-pointer"}
+            <hr className={"my-5"}/>
+            <Button className={"block cursor-pointer"}
                     onClick={() => usersHttpService.updateUser(user).then(() => {
                         usersHttpService.getUser().then(setUser)
                     })}>
-                Run simulation
+                Save
             </Button>
         </div>
     )
