@@ -31,9 +31,15 @@ import {
 
 import {Button} from "@/components/ui/button"
 import {Input} from "@/components/ui/input.tsx";
+import {DecisionHttpService} from "@/services/decision-http-service.ts";
+import {UsersHttpService} from "@/services/users-http-service.ts";
+import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip.tsx";
+import {Badge} from "@/components/ui/badge.tsx";
 
 const portfolioHttpService = new PortfolioHttpService();
 const assetsHttpService = new AssetsHttpService();
+const usersHttpService = new UsersHttpService();
+const decisionHttpService = new DecisionHttpService();
 
 function Dashboard() {
     return (
@@ -62,6 +68,8 @@ interface AssetHolding {
     shares: number;
     valueShare: number;
     buyPrice: number;
+    lastDecision: "BUY" | "SELL" | "HOLD";
+    lastDecisionDate: Date;
 }
 
 function toUSD(cents: number) {
@@ -116,13 +124,18 @@ function Portfolio() {
             const assets = await Promise.all(holdings.map(async holding => {
                 const asset = await assetsHttpService.getAsset(holding.assetId);
                 const assetPrice = await assetsHttpService.getPrice(holding.assetId, new Date(Date.now()));
+                const user = await usersHttpService.getUser();
+                const decisions = await decisionHttpService.getDecisions(holding.assetId, user.riskLevel);
+                const lastDecision = decisions.sort((a, b) => a.date.getTime() - b.date.getTime()).pop();
                 return {
                     assetId: holding.assetId,
                     mic: asset.mic,
                     ticker: asset.ticker,
                     shares: holding.amount,
                     valueShare: assetPrice.price,
-                    buyPrice: holding.boughtPrice
+                    buyPrice: holding.boughtPrice,
+                    lastDecision: lastDecision?.type,
+                    lastDecisionDate: lastDecision?.date
                 } as AssetHolding;
             }));
             setAssetHoldings(assets);
@@ -139,6 +152,7 @@ function Portfolio() {
                         <TableHead>Shares</TableHead>
                         <TableHead>Value per share</TableHead>
                         <TableHead>Total value</TableHead>
+                        <TableHead>Last decision</TableHead>
                         <TableHead className="text-right">Change (%)</TableHead>
                         <TableHead colSpan={1}></TableHead>
                     </TableRow>
@@ -155,6 +169,32 @@ function Portfolio() {
                                 <TableCell>{holding.shares}</TableCell>
                                 <TableCell>{toUSD(holding.valueShare)}</TableCell>
                                 <TableCell>{toUSD(holding.valueShare * holding.shares)}</TableCell>
+                                <TableCell>
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger>
+                                                <Badge className={`${holding.lastDecision === "BUY"
+                                                    ? "bg-green-700"
+                                                    : (holding.lastDecision === "SELL"
+                                                        ? "bg-red-700"
+                                                        : "")}`} variant={"default"}>
+                                                    {holding.lastDecision}
+                                                </Badge>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>{holding.lastDecisionDate.toLocaleString('en-US', {
+                                                    year: 'numeric',
+                                                    month: 'long',
+                                                    day: 'numeric',
+                                                    hour: 'numeric',
+                                                    minute: '2-digit',
+                                                    second: '2-digit',
+                                                    hour12: true,
+                                                })}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                </TableCell>
                                 <TableCell
                                     className={`text-right font-medium ${difference.includes('-') ? 'text-red-700' : 'text-green-700'}`}>{difference}</TableCell>
                                 <TableCell>
@@ -179,7 +219,7 @@ function Portfolio() {
                                 .map(holding => holding.shares * holding.valueShare)
                                 .reduce((previous, current) => previous + current, 0))
                         }</TableCell>
-                        <TableCell colSpan={2}></TableCell>
+                        <TableCell colSpan={3}></TableCell>
                     </TableRow>
                 </TableFooter>
             </Table>
