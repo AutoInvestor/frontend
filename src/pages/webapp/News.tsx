@@ -20,16 +20,29 @@ function News() {
 }
 
 function RecentNews() {
-    const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
+    const [newsItems, setNewsItems] = useState<Map<string, NewsItem[]>>(new Map());
     const [assets, setAssets] = useState<Asset[]>([]);
+
+    function groupBy<T, K extends keyof T>(array: T[], key: K): Map<T[K], T[]> {
+        const map = new Map<T[K], T[]>();
+        for (const item of array) {
+            const groupKey = item[key];
+            if (!map.has(groupKey)) {
+                map.set(groupKey, []);
+            }
+            map.get(groupKey)!.push(item);
+        }
+        return map;
+    }
 
     useEffect(() => {
         async function fetchData() {
             const newsItems = await newsHttpService.getNews();
+            const newsItemsGrouped = groupBy(newsItems, "url");
             const distinctAssetIds = [...new Set(newsItems.map(item => item.assetId))];
             const assets = await Promise.all(distinctAssetIds.map(id => assetsHttpService.getAsset(id)));
             setAssets(assets);
-            setNewsItems(newsItems);
+            setNewsItems(newsItemsGrouped);
         }
         fetchData().then();
     }, [])
@@ -44,8 +57,8 @@ function RecentNews() {
 
     return (
         <div className={"flex gap-y-4 flex-col"}>
-            {newsItems.map((newsItem) => {
-                const asset = getAsset(newsItem.assetId);
+            {Array.from(newsItems.entries()).map(([url, newsItems]) => {
+                const assets = newsItems.map(item => getAsset(item.assetId));
                 return (
                     <div className={"flex flex-row gap-4 items-center"}>
                         <div className={"rounded-xl bg-neutral-100 w-fit box-border p-3"}>
@@ -53,15 +66,17 @@ function RecentNews() {
                         </div>
                         <div className={"flex-1"}>
                             <p>
-                                <Badge variant="outline">
-                                    <span className={'text-neutral-400'}>{asset.mic}</span>
-                                    <span className="ps-0.5 font-medium">{asset.ticker}</span>
-                                </Badge>
+                                {assets.map(asset => (
+                                    <Badge variant="outline" className={"mr-1"} key={asset.assetId}>
+                                        <span className={'text-neutral-400'}>{asset.mic}</span>
+                                        <span className="ps-0.5 font-medium">{asset.ticker}</span>
+                                    </Badge>
+                                ))}
                             </p>
-                            <p className={"font-light-500 pt-1"}>{newsItem.title}</p>
+                            <p className={"font-light-500 pt-1"}>{newsItems[0].title}</p>
                         </div>
                         <div className={"text-neutral-500"}>
-                            <small>{newsItem.date.toLocaleString('en-US', {
+                            <small>{newsItems[0].date.toLocaleString('en-US', {
                                 year: 'numeric',
                                 month: 'long',
                                 day: 'numeric',
@@ -72,7 +87,7 @@ function RecentNews() {
                             })}</small>
                         </div>
                         <div>
-                            <a href={newsItem.url} target={"_blank"}><ArrowTopRightOnSquareIcon className={"size-6"}/></a>
+                            <a href={url} target={"_blank"}><ArrowTopRightOnSquareIcon className={"size-6"}/></a>
                         </div>
                     </div>
                 )
