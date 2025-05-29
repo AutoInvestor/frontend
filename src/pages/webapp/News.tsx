@@ -28,8 +28,8 @@ function RecentNews() {
             const newsItems = await newsHttpService.getNews();
             const distinctAssetIds = [...new Set(newsItems.map(item => item.assetId))];
             const assets = await Promise.all(distinctAssetIds.map(assetsHttpService.getAsset));
-            setNewsItems(newsItems);
             setAssets(assets);
+            setNewsItems(newsItems);
         }
         fetchData().then();
     }, [])
