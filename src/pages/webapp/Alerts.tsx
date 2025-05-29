@@ -1,4 +1,4 @@
-import {ArrowTrendingDownIcon, ArrowTrendingUpIcon} from "@heroicons/react/16/solid";
+import {ArrowTrendingDownIcon, ArrowTrendingUpIcon, EqualsIcon} from "@heroicons/react/16/solid";
 import {useEffect, useState} from "react";
 import {Alert} from "@/model/Alert.ts";
 import {AlertsHttpService} from "@/services/alerts-http-service.ts";
@@ -51,7 +51,10 @@ function RecentAlerts() {
                         <div className={"rounded-xl bg-neutral-100 w-fit box-border p-3"}>
                             {alert.type === "BUY"
                                 ? <ArrowTrendingUpIcon className={"size-6"}/>
-                                : <ArrowTrendingDownIcon className={"size-6"}/>}
+                                : (alert.type === "SELL"
+                                    ? <ArrowTrendingDownIcon className={"size-6"}/>
+                                    : <EqualsIcon className={"size-6"}/>)
+                            }
                         </div>
                         <div className={"flex-1"}>
                             <p>
@@ -63,7 +66,9 @@ function RecentAlerts() {
                             <p className={"font-light text-neutral-500 pt-1"}>
                                 {alert.type === "BUY"
                                     ? "Technical indicators sugests buying opportunity"
-                                    : "Technical indicators sugests selling opportunity"
+                                    : (alert.type === "SELL"
+                                        ? "Technical indicators sugests selling opportunity"
+                                        : "Technical indicators sugests no change")
                                 }
                             </p>
                         </div>
