@@ -45,6 +45,7 @@ function RecentNews() {
     return (
         <div className={"flex gap-y-4 flex-col"}>
             {newsItems.map((newsItem) => {
+                const asset = getAsset(newsItem.assetId);
                 return (
                     <div className={"flex flex-row gap-4 items-center"}>
                         <div className={"rounded-xl bg-neutral-100 w-fit box-border p-3"}>
@@ -53,8 +54,8 @@ function RecentNews() {
                         <div className={"flex-1"}>
                             <p>
                                 <Badge variant="outline">
-                                    <span className={'text-neutral-400'}>{getAsset(newsItem.assetId).mic}</span>
-                                    <span className="ps-0.5 font-medium">{getAsset(newsItem.assetId).ticker}</span>
+                                    <span className={'text-neutral-400'}>{asset.mic}</span>
+                                    <span className="ps-0.5 font-medium">{asset.ticker}</span>
                                 </Badge>
                             </p>
                             <p className={"font-light-500 pt-1"}>{newsItem.title}</p>
