@@ -1,3 +1,5 @@
+import {ZodType} from "zod/v4";
+
 export abstract class BaseHttpService {
     private readonly baseUrl: string;
 
@@ -5,15 +7,15 @@ export abstract class BaseHttpService {
         this.baseUrl = baseUrl;
     }
 
-    protected async get<T>(endpoint: string): Promise<T> {
+    protected async get<T>(endpoint: string, type: ZodType<T>): Promise<T> {
         const response = await fetch(`${this.baseUrl}${endpoint}`, {
             method: 'GET',
             credentials: "include"
         });
-        return this.handleResponse<T>(response);
+        return this.handleResponse<T>(response, type);
     }
 
-    protected async post<T, B = unknown>(endpoint: string, body: B): Promise<T> {
+    protected async post<T, B = unknown>(endpoint: string, body: B, type: ZodType<T>): Promise<T> {
         const response = await fetch(`${this.baseUrl}${endpoint}`, {
             method: 'POST',
             credentials: "include",
@@ -22,10 +24,10 @@ export abstract class BaseHttpService {
             },
             body: JSON.stringify(body),
         });
-        return this.handleResponse<T>(response);
+        return this.handleResponse<T>(response, type);
     }
 
-    protected async put<T, B = unknown>(endpoint: string, body: B): Promise<T> {
+    protected async put<T, B = unknown>(endpoint: string, body: B, type: ZodType<T>): Promise<T> {
         const response = await fetch(`${this.baseUrl}${endpoint}`, {
             method: 'PUT',
             credentials: "include",
@@ -34,22 +36,23 @@ export abstract class BaseHttpService {
             },
             body: JSON.stringify(body),
         });
-        return this.handleResponse<T>(response);
+        return this.handleResponse<T>(response, type);
     }
 
-    protected async delete<T>(endpoint: string): Promise<T> {
+    protected async delete<T>(endpoint: string, type: ZodType<T>): Promise<T> {
         const response = await fetch(`${this.baseUrl}${endpoint}`, {
             method: 'DELETE',
             credentials: "include"
         });
-        return this.handleResponse<T>(response);
+        return this.handleResponse<T>(response, type);
     }
 
-    private async handleResponse<T>(response: Response): Promise<T> {
+    private async handleResponse<T>(response: Response, type: ZodType<T>): Promise<T> {
         if (!response.ok) {
             const errorBody = await response.text();
             throw new Error(`HTTP error ${response.status}: ${errorBody}`);
         }
-        return response.json();
+        const raw = await response.json();
+        return type.parse(raw);
     }
 }
