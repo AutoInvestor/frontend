@@ -27,7 +27,7 @@ function RecentAlerts() {
         async function fetchData() {
             const alerts = await alertsHttpService.getAlerts();
             const distinctAssetIds = [...new Set(alerts.map(item => item.assetId))];
-            const assets = await Promise.all(distinctAssetIds.map(assetsHttpService.getAsset));
+            const assets = await Promise.all(distinctAssetIds.map(id => assetsHttpService.getAsset(id)));
             setAssets(assets);
             setAlerts(alerts);
         }
