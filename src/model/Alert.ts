@@ -7,3 +7,4 @@ export interface Alert {
 type AlertType =
     | "BUY"
     | "SELL"
+    | "HOLD"

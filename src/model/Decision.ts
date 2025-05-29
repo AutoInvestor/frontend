@@ -8,3 +8,4 @@ export interface Decision {
 type AlertType =
     | "BUY"
     | "SELL"
+    | "HOLD"

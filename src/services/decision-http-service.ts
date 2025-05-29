@@ -4,7 +4,7 @@ import z, {ZodType} from "zod/v4";
 
 export class DecisionHttpService extends BaseHttpService {
     private static Schema: ZodType<Decision> = z.object({
-        type: z.union([z.literal("BUY"), z.literal("SELL")]),
+        type: z.enum(["BUY", "SELL", "HOLD"]),
         assetId: z.string(),
         riskLevel: z.number(),
         date: z.coerce.date(),
