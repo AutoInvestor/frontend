@@ -4,7 +4,7 @@ import z, {ZodType} from "zod/v4";
 
 export class AlertsHttpService extends BaseHttpService {
     private static Schema: ZodType<Alert> = z.object({
-        type: z.union([z.literal("BUY"), z.literal("SELL")]),
+        type: z.enum(["BUY", "SELL", "HOLD"]),
         assetId: z.string(),
         date: z.coerce.date(),
     })
