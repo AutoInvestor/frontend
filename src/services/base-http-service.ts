@@ -48,6 +48,10 @@ export abstract class BaseHttpService {
     }
 
     private async handleResponse<T>(response: Response, type: ZodType<T>): Promise<T> {
+        if (response.redirected && response.url.includes("/api/oauth2/authorization/okta")) {
+            window.location.href = response.url;
+            return Promise.reject("Redirected");
+        }
         if (!response.ok) {
             const errorBody = await response.text();
             throw new Error(`HTTP error ${response.status}: ${errorBody}`);
