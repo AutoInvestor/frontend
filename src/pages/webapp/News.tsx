@@ -33,14 +33,13 @@ function RecentNews() {
                             <NewspaperIcon className={"size-6"}/>
                         </div>
                         <div className={"flex-1"}>
-                            <p>{alert.source}</p>
                             <p className={"font-light text-neutral-500 pt-1"}>{alert.title}</p>
                         </div>
                         <div className={"text-neutral-500"}>
                             <small>{alert.date.toDateString()}</small>
                         </div>
                         <div>
-                            <a href={alert.link} target={"_blank"}><ArrowTopRightOnSquareIcon className={"size-6"}/></a>
+                            <a href={alert.url} target={"_blank"}><ArrowTopRightOnSquareIcon className={"size-6"}/></a>
                         </div>
                     </div>
                 )
