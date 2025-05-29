@@ -66,7 +66,15 @@ function RecentAlerts() {
                                 </p>
                             </div>
                             <div className={"text-neutral-500"}>
-                                <small>{alert.date.toDateString()}</small>
+                                <small>{alert.date.toLocaleString('en-US', {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric',
+                                    hour: 'numeric',
+                                    minute: '2-digit',
+                                    second: '2-digit',
+                                    hour12: true,
+                                })}</small>
                             </div>
                         </div>
                     )
