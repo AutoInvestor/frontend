@@ -59,6 +59,7 @@ function RecentNews() {
         <div className={"flex gap-y-4 flex-col"}>
             {Array.from(newsItems.entries()).map(([url, newsItems]) => {
                 const assets = newsItems.map(item => getAsset(item.assetId));
+                const uniqueAssets = Array.from(new Map(assets.map(item => [item.assetId, item])).values());
                 return (
                     <div className={"flex flex-row gap-4 items-center"}>
                         <div className={"rounded-xl bg-neutral-100 w-fit box-border p-3"}>
@@ -66,7 +67,7 @@ function RecentNews() {
                         </div>
                         <div className={"flex-1"}>
                             <p>
-                                {assets.map(asset => (
+                                {uniqueAssets.map(asset => (
                                     <Badge variant="outline" className={"mr-1"} key={asset.assetId}>
                                         <span className={'text-neutral-400'}>{asset.mic}</span>
                                         <span className="ps-0.5 font-medium">{asset.ticker}</span>

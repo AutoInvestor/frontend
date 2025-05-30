@@ -46,19 +46,17 @@ export abstract class BaseHttpService {
     private async customFetch(endpoint: string, init: RequestInit): Promise<Response> {
         return await fetch(endpoint, {
             ...init,
-            redirect: "manual",
             credentials: "include"
         });
     }
 
     private async handleResponse<T>(response: Response, type: ZodType<T>): Promise<T> {
-        if (response.status >= 300 && response.status < 400) {
-            const location = response.headers.get("Location");
-            if (location === "/api/oauth2/authorization/okta") {
-                window.location.href = location;
+        if (response.redirected) {
+            if (response.url.startsWith("https://dev-20214328.okta.com")) {
+                window.location.replace(response.url);
                 return Promise.reject("Redirected to login");
             }
-            return Promise.reject(`Redirect to ${location} is unauthorized`);
+            return Promise.reject(`Redirect to ${response.url} is unauthorized`);
         }
         if (!response.ok) {
             const errorBody = await response.text();
