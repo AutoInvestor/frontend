@@ -55,7 +55,7 @@ export abstract class BaseHttpService {
         if (response.status >= 300 && response.status < 400) {
             const location = response.headers.get("Location");
             if (location === "/api/oauth2/authorization/okta") {
-                window.location.href = response.url;
+                window.location.href = location;
                 return Promise.reject("Redirected to login");
             }
             return Promise.reject(`Redirect to ${location} is unauthorized`);
