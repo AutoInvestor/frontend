@@ -121,10 +121,10 @@ function Portfolio() {
 
     useEffect(() => {
         async function fetchInitialData(): Promise<void> {
+            const user = await usersHttpService.getUser();
             const assets = await Promise.all(holdings.map(async holding => {
                 const asset = await assetsHttpService.getAsset(holding.assetId);
                 const assetPrice = await assetsHttpService.getPrice(holding.assetId, new Date(Date.now()));
-                const user = await usersHttpService.getUser();
                 const decisions = await decisionHttpService.getDecisions(holding.assetId, user.riskLevel);
                 const lastDecision = decisions.sort((a, b) => a.date.getTime() - b.date.getTime()).pop();
                 return {
