@@ -1,6 +1,7 @@
 import {Navigate, useLocation} from "react-router-dom";
 import {ReactNode} from "react";
 import useAuth from "@/hooks/useAuth.ts";
+import {LoadingLayer} from "@/components/LoadingLayer.tsx";
 
 export function RequireAuth({children}: { children: ReactNode }) {
     const {isAuthenticated, loading} = useAuth();
@@ -9,9 +10,7 @@ export function RequireAuth({children}: { children: ReactNode }) {
     if (loading) {
         return (
             <>
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/50 backdrop-blur-sm">
-                    <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                </div>
+                <LoadingLayer />
                 {children}
             </>
         );

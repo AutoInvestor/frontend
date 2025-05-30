@@ -24,6 +24,7 @@ import {DatePickerRange} from "@/components/DatePickerRange.tsx";
 import {DateRange} from "react-day-picker";
 import {addDays, endOfDay, isWithinInterval, startOfDay} from "date-fns";
 import {ToggleGroup, ToggleGroupItem} from "@/components/ui/toggle-group.tsx";
+import {LoadingLayer} from "@/components/LoadingLayer.tsx";
 
 const portfolioHttpService = new PortfolioHttpService();
 const assetsHttpService = new AssetsHttpService();
@@ -209,28 +210,8 @@ interface MoneyChartData extends BaseChartData {
 function SimulationResults({simulationConfig}: {
     simulationConfig: SimulationConfig | undefined;
 }) {
-    const [assetsData, setAssetsData] = useState<AssetChartEntryCollection[]>([]);
     const [chartData, setChartData] = useState<MoneyChartData[]>([]);
-
-    useEffect(() => {
-        const map = new ChartEntryCollection();
-        assetsData.forEach(assetData => {
-            assetData.data.forEach((value, key) => {
-                const currentValue = map.get(key) || {autoinvested: 0, noAutoinvested: 0};
-                map.set(key, {
-                    autoinvested: currentValue.autoinvested + value.autoinvested,
-                    noAutoinvested: currentValue.noAutoinvested + value.noAutoinvested
-                });
-            })
-        })
-        const overviewData = Array.from(map.entries()).map(([key, value]) => ({
-            date: key,
-            autoinvested: value.autoinvested,
-            noAutoinvested: value.noAutoinvested,
-            select: "Overview"
-        }))
-        setChartData([...normalise(assetsData), ...overviewData]);
-    }, [assetsData]);
+    const [isLoading, setIsLoading] = useState(false);
 
     const normalise = (assets: AssetChartEntryCollection[]) => {
         return assets.map((asset: AssetChartEntryCollection) => {
@@ -246,8 +227,8 @@ function SimulationResults({simulationConfig}: {
     }
 
     useEffect(() => {
-        async function fetchData(simulationConfig: SimulationConfig): Promise<void> {
-            const assetsData = await Promise.all(simulationConfig.simulationItems.map(async item => {
+        async function createAssetChartEntryCollection(simulationConfig: SimulationConfig): Promise<AssetChartEntryCollection[]> {
+            return await Promise.all(simulationConfig.simulationItems.map(async item => {
                 const decisions = await decisionHttpService.getDecisions(item.assetId, simulationConfig.riskLevel);
                 const entryCollection = await createChartData(
                     item.locatedMoney || 0,
@@ -264,14 +245,42 @@ function SimulationResults({simulationConfig}: {
                     data: entryCollection
                 } as AssetChartEntryCollection;
             }));
-            setAssetsData(assetsData);
         }
 
-        if (simulationConfig) fetchData(simulationConfig).then();
+        function createOverviewChartEntryCollection(assertChartDataEntryCollection: AssetChartEntryCollection[]): MoneyChartData[] {
+            const map = new ChartEntryCollection();
+            assertChartDataEntryCollection.forEach(assetData => {
+                assetData.data.forEach((value, key) => {
+                    const currentValue = map.get(key) || {autoinvested: 0, noAutoinvested: 0};
+                    map.set(key, {
+                        autoinvested: currentValue.autoinvested + value.autoinvested,
+                        noAutoinvested: currentValue.noAutoinvested + value.noAutoinvested
+                    });
+                })
+            })
+            return Array.from(map.entries()).map(([key, value]) => ({
+                date: key,
+                autoinvested: value.autoinvested,
+                noAutoinvested: value.noAutoinvested,
+                select: "Overview"
+            } as MoneyChartData));
+        }
+
+        if (simulationConfig) {
+            setIsLoading(true);
+            createAssetChartEntryCollection(simulationConfig)
+                .then(collection => {
+                    const overviewData = createOverviewChartEntryCollection(collection);
+                    setChartData([...normalise(collection), ...overviewData]);
+                })
+                .catch(console.error)
+                .finally(() => setIsLoading(false));
+        }
     }, [simulationConfig]);
 
     return (
         <>
+            {isLoading && <LoadingLayer />}
             {simulationConfig && <div className={"my-5"}>
                 <DataChart
                     data={chartData}
