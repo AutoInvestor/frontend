@@ -1,64 +1,190 @@
-import {UsersHttpService} from "@/services/users-http-service.ts";
 import {useEffect, useState} from "react";
-import {User} from "@/model/User.ts";
-import {ToggleGroup, ToggleGroupItem} from "@/components/ui/toggle-group.tsx";
-import {Button} from "@/components/ui/button.tsx";
 import {Link} from "react-router-dom";
-import {ArrowTrendingUpIcon} from "@heroicons/react/16/solid";
-import {Input} from "@/components/ui/input.tsx";
 
-const usersHttpService = new UsersHttpService();
+import {Card, CardContent, CardHeader, CardTitle,} from "@/components/ui/card";
+import {Button} from "@/components/ui/button";
+import {Input} from "@/components/ui/input";
+import {Label} from "@/components/ui/label";
+import {Badge} from "@/components/ui/badge";
+
+import {ArrowLeft} from "lucide-react";
+
+import {UsersHttpService} from "@/services/users-http-service";
+import {User} from "@/model/User";
+
+const usersService = new UsersHttpService();
 
 export default function Profile() {
-    const [user, setUser] = useState<User>();
+    const [user, setUser] = useState<User | null>(null);
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
+    const [email, setEmail] = useState("");
+    const [riskProfile, setRiskProfile] = useState<number>(1);
+    const [isSaving, setIsSaving] = useState(false);
 
+    // These labels correspond to riskLevel = 1..4
+    const riskLevels = [
+        { level: 1, label: "Conservative" },
+        { level: 2, label: "Moderate" },
+        { level: 3, label: "Aggressive" },
+        { level: 4, label: "Very Aggressive" },
+    ];
+
+    // 1) On mount, fetch the user from the backend
     useEffect(() => {
-        usersHttpService.getUser().then(setUser);
+        async function fetchUser() {
+            try {
+                const u = await usersService.getUser();
+                setUser(u);
+                setFirstName(u.firstName);
+                setLastName(u.lastName);
+                setEmail(u.email);
+                setRiskProfile(u.riskLevel);
+            } catch (err) {
+                console.error("Error loading user:", err);
+            }
+        }
+        fetchUser();
     }, []);
 
+    // 2) Handler for “Save” button
+    const onSave = async () => {
+        if (!user) return;
+        setIsSaving(true);
+
+        try {
+            // Build a new User object with updated fields
+            const updated: User = {
+                ...user,
+                firstName: firstName.trim(),
+                lastName: lastName.trim(),
+                email: email.trim(),
+                riskLevel: riskProfile,
+            };
+
+            await usersService.updateUser(updated);
+            // Re‐fetch to ensure we have the canonical copy
+            const fresh = await usersService.getUser();
+            setUser(fresh);
+            setFirstName(fresh.firstName);
+            setLastName(fresh.lastName);
+            setEmail(fresh.email);
+            setRiskProfile(fresh.riskLevel);
+        } catch (err) {
+            console.error("Error saving user:", err);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // While loading initially, show nothing (or you could show a spinner)
     if (!user) return null;
 
     return (
-        <div className={"w-[80%] max-w-[1200px] min-w-[200px] mx-auto"}>
-            <div className={"flex justify-between flex-row mt-6"}>
-                <Link className={"block text-xl font-medium text-neutral-600"} to={"/"}>AutoInvestor</Link>
-                <Link className={"flex text-lg font-medium items-center"} to={"/dashboard"}>
-                    <ArrowTrendingUpIcon className={"size-4"}></ArrowTrendingUpIcon>
-                    <span className={"ms-2"}>Dashboard</span>
-                </Link>
+        <div className="min-h-screen bg-black text-white">
+            {/* Header */}
+            <header className="flex items-center justify-between p-6 border-b border-gray-800">
+                <div className="flex items-center gap-4">
+                    <Link to="/">
+                        <Button variant="ghost" className="text-white hover:bg-gray-800">
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            AutoInvestor
+                        </Button>
+                    </Link>
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="text-sm">📈 Dashboard</span>
+                </div>
+            </header>
+
+            {/* Main Content */}
+            <div className="p-6 max-w-2xl mx-auto">
+                <h1 className="text-4xl font-bold mb-8">Profile</h1>
+
+                {/* Personal Information Card */}
+                <Card className="bg-black border-gray-800 mb-8">
+                    <CardHeader>
+                        <CardTitle className="text-white text-xl">
+                            Personal information
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <Label htmlFor="firstName" className="text-white">
+                                    First Name
+                                </Label>
+                                <Input
+                                    id="firstName"
+                                    value={firstName}
+                                    onChange={(e) => setFirstName(e.currentTarget.value)}
+                                    className="bg-gray-900 border-gray-700 text-white mt-1"
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="lastName" className="text-white">
+                                    Last Name
+                                </Label>
+                                <Input
+                                    id="lastName"
+                                    value={lastName}
+                                    onChange={(e) => setLastName(e.currentTarget.value)}
+                                    className="bg-gray-900 border-gray-700 text-white mt-1"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <Label htmlFor="email" className="text-white">
+                                Email
+                            </Label>
+                            <Input
+                                id="email"
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.currentTarget.value)}
+                                className="bg-gray-900 border-gray-700 text-white mt-1"
+                            />
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Risk Profile Card */}
+                <Card className="bg-black border-gray-800 mb-8">
+                    <CardHeader>
+                        <CardTitle className="text-white text-xl">Risk profile</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex gap-2 mb-4">
+                            {riskLevels.map((risk) => (
+                                <Button
+                                    key={risk.level}
+                                    variant={riskProfile === risk.level ? "default" : "outline"}
+                                    className={
+                                        riskProfile === risk.level
+                                            ? "bg-white text-black hover:bg-gray-200"
+                                            : "bg-gray-900 border-gray-700 text-white hover:bg-gray-800"
+                                    }
+                                    onClick={() => setRiskProfile(risk.level)}
+                                >
+                                    {risk.level}
+                                </Button>
+                            ))}
+                        </div>
+                        <Badge variant="secondary" className="bg-gray-800 text-white">
+                            {riskLevels[riskProfile - 1].label}
+                        </Badge>
+                    </CardContent>
+                </Card>
+
+                {/* Save Button */}
+                <Button
+                    className="bg-white hover:bg-gray-200 text-black font-medium px-8"
+                    onClick={onSave}
+                    disabled={isSaving}
+                >
+                    {isSaving ? "Saving…" : "Save"}
+                </Button>
             </div>
-            <h1 className={"text-4xl font-bold py-6 mt-6"}>Profile</h1>
-            <h2 className={"text-2xl font-medium py-6"}>Personal information</h2>
-            <Input type="email" disabled={true} value={user.email} />
-            <div className={"flex flex-row gap-4 mt-4"}>
-                <Input type="firstName" disabled={true} value={user.firstName} />
-                <Input type="lastName" disabled={true} value={user.lastName} />
-            </div>
-            <h2 className={"text-2xl font-medium py-6"}>Risk profile</h2>
-            <ToggleGroup
-                size="lg"
-                type="single"
-                variant="outline" value={user.riskLevel.toString()}
-                onValueChange={newValue => setUser(user => ({...user, riskLevel: parseInt(newValue)} as User))}
-            >
-                {/* TODO: Fetch risk levels from back */}
-                {[1, 2, 3, 4].map((riskLevelItem, index) => (
-                    <ToggleGroupItem
-                        key={index}
-                        value={riskLevelItem.toString()}
-                        aria-label={`Toggle risk level ${riskLevelItem}`}
-                    >
-                        {riskLevelItem}
-                    </ToggleGroupItem>
-                ))}
-            </ToggleGroup>
-            <hr className={"my-5"}/>
-            <Button className={"block cursor-pointer"}
-                    onClick={() => usersHttpService.updateUser(user).then(() => {
-                        usersHttpService.getUser().then(setUser)
-                    })}>
-                Save
-            </Button>
         </div>
-    )
+    );
 }
