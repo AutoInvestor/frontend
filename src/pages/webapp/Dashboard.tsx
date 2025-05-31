@@ -445,7 +445,6 @@ export default function Dashboard() {
                                 holdings={portfolioHoldings}
                                 assetsMap={assetsMap}
                                 decisionsMap={decisionsMap}
-                                riskLevel={user?.riskLevel ?? 1}
                             />
                         </CardContent>
                     </Card>

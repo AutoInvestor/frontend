@@ -1,30 +1,28 @@
-// src/components/AssetTable.tsx
+import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Pencil } from "lucide-react";
 
-import {useEffect, useState} from "react";
-import {Badge} from "@/components/ui/badge";
-import {Button} from "@/components/ui/button";
-import {Pencil} from "lucide-react";
-
-import {PortfolioHolding} from "@/model/PortfolioHolding";
-import {Asset} from "@/model/Asset";
-import {AssetsHttpService} from "@/services/assets-http-service";
-import {DecisionHttpService} from "@/services/decision-http-service";
-import {UsersHttpService} from "@/services/users-http-service";
+import { PortfolioHolding } from "@/model/PortfolioHolding";
+import { Asset } from "@/model/Asset";
+import { AssetsHttpService } from "@/services/assets-http-service";
+import { DecisionHttpService } from "@/services/decision-http-service";
+import { UsersHttpService } from "@/services/users-http-service";
 
 const assetsService = new AssetsHttpService();
 const decisionService = new DecisionHttpService();
 const usersService = new UsersHttpService();
 
 /**
- * We’ll define a local “AssetHolding” type to render each row:
+ * Local row shape for rendering
  */
 interface AssetHolding {
   assetId: string;
   mic: string;
   ticker: string;
   shares: number;
-  valuePerShareCents: number; // current price in cents
-  buyPriceCents: number;      // boughtPrice in cents
+  valuePerShareCents: number;
+  buyPriceCents: number;
   lastDecision: "BUY" | "SELL" | "HOLD";
   lastDecisionDate: Date;
 }
@@ -37,11 +35,7 @@ function toUSD(cents: number) {
 }
 
 /**
- * Props:
- *  - holdings: PortfolioHolding[]         (from Dashboard)
- *  - assetsMap: Record<string, Asset>     (mapping assetId → Asset)
- *  - onUpdate: (updatedHolding) => Promise<void>
- *  - onDelete: (assetId) => Promise<void>
+ * Props
  */
 interface AssetTableProps {
   holdings: PortfolioHolding[];
@@ -59,101 +53,84 @@ export function AssetTable({
   const [assetHoldings, setAssetHoldings] = useState<AssetHolding[]>([]);
   const [userRisk, setUserRisk] = useState<number>(1);
 
-  // 1) Fetch user.riskLevel once (so we can get decisions)
+  /* 1️⃣  Fetch user risk level once */
   useEffect(() => {
-    usersService.getUser().then((u) => {
-      setUserRisk(u.riskLevel);
-    });
+    usersService.getUser().then((u) => setUserRisk(u.riskLevel));
   }, []);
 
-  // 2) Whenever holdings or assetsMap or userRisk changes, rebuild assetHoldings
+  /* 2️⃣  Re-build table data whenever inputs change */
   useEffect(() => {
     async function buildAssetHoldings() {
       const arr: AssetHolding[] = await Promise.all(
-          holdings.map(async (h) => {
-            const asset = assetsMap[h.assetId];
-            if (!asset) {
-              // If we don’t have the asset in assetsMap yet, skip it
-              return null;
-            }
+          holdings
+              // ⬇️ Skip rows whose asset metadata we don't have yet
+              .filter((h) => assetsMap[h.assetId])
+              .map(async (h): Promise<AssetHolding> => {
+                const asset = assetsMap[h.assetId]!; // non-null (filtered above)
 
-            // fetch current price in cents
-            const { price: currentPriceCents } = await assetsService.getPrice(
-                h.assetId,
-                new Date()
-            );
+                // current price
+                const { price: currentPriceCents } = await assetsService.getPrice(
+                    h.assetId,
+                    new Date()
+                );
 
-            // fetch decisions history
-            const decisions = await decisionService.getDecisions(
-                h.assetId,
-                userRisk
-            );
-            // pick the last (chronologically)
-            const lastDecision = decisions
-                .sort((a, b) => a.date.getTime() - b.date.getTime())
-                .pop();
+                // decision history
+                const decisions = await decisionService.getDecisions(
+                    h.assetId,
+                    userRisk
+                );
+                const lastDecision = decisions
+                    .sort((a, b) => a.date.getTime() - b.date.getTime())
+                    .pop();
 
-            return {
-              assetId: h.assetId,
-              mic: asset.mic,
-              ticker: asset.ticker,
-              shares: h.amount,
-              valuePerShareCents: currentPriceCents,
-              buyPriceCents: h.boughtPrice,
-              lastDecision: lastDecision ? lastDecision.type : "HOLD",
-              lastDecisionDate: lastDecision ? lastDecision.date : new Date(),
-            } as AssetHolding;
-          })
+                return {
+                  assetId: h.assetId,
+                  mic: asset.mic,
+                  ticker: asset.ticker,
+                  shares: h.amount,
+                  valuePerShareCents: currentPriceCents,
+                  buyPriceCents: h.boughtPrice,
+                  lastDecision: lastDecision ? lastDecision.type : "HOLD",
+                  lastDecisionDate: lastDecision ? lastDecision.date : new Date(),
+                };
+              })
       );
 
-      // filter out any nulls (in case assetMap was not ready)
-      setAssetHoldings(arr.filter((x): x is AssetHolding => x !== null));
+      setAssetHoldings(arr);
     }
 
     if (holdings.length && Object.keys(assetsMap).length && userRisk) {
       buildAssetHoldings().catch(console.error);
     } else {
-      setAssetHoldings([]); // no holdings or no assets yet
+      setAssetHoldings([]);
     }
   }, [holdings, assetsMap, userRisk]);
 
-  // 3) Compute total portfolio value for footer
+  /* 3️⃣  Total portfolio value */
   const totalValue = assetHoldings
-      .map((h) => (h.valuePerShareCents * h.shares) / 100)
-      .reduce((sum, v) => sum + v, 0);
+      .reduce((sum, h) => sum + (h.valuePerShareCents * h.shares) / 100, 0);
 
+  /* 4️⃣  Render table */
   return (
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
           <tr className="border-b border-gray-700">
-            <th className="text-left py-3 px-2 text-gray-400 font-medium">
-              Ticker
-            </th>
-            <th className="text-left py-3 px-2 text-gray-400 font-medium">
-              Shares
-            </th>
-            <th className="text-left py-3 px-2 text-gray-400 font-medium">
-              Value / Share
-            </th>
-            <th className="text-left py-3 px-2 text-gray-400 font-medium">
-              Total value
-            </th>
-            <th className="text-left py-3 px-2 text-gray-400 font-medium">
-              Last decision
-            </th>
-            <th className="text-left py-3 px-2 text-gray-400 font-medium">
-              Change (%)
-            </th>
+            <th className="text-left py-3 px-2 text-gray-400 font-medium">Ticker</th>
+            <th className="text-left py-3 px-2 text-gray-400 font-medium">Shares</th>
+            <th className="text-left py-3 px-2 text-gray-400 font-medium">Value / Share</th>
+            <th className="text-left py-3 px-2 text-gray-400 font-medium">Total value</th>
+            <th className="text-left py-3 px-2 text-gray-400 font-medium">Last decision</th>
+            <th className="text-left py-3 px-2 text-gray-400 font-medium">Change (%)</th>
             <th className="text-left py-3 px-2 text-gray-400 font-medium"></th>
           </tr>
           </thead>
+
           <tbody>
           {assetHoldings.map((h) => {
             const changePercent =
                 h.buyPriceCents > 0
-                    ? ((h.valuePerShareCents - h.buyPriceCents) / h.buyPriceCents) *
-                    100
+                    ? ((h.valuePerShareCents - h.buyPriceCents) / h.buyPriceCents) * 100
                     : 0;
             const isNegative = changePercent < 0;
 
@@ -168,55 +145,46 @@ export function AssetTable({
                       <span className="font-medium text-white">{h.ticker}</span>
                     </div>
                   </td>
+
                   <td className="py-4 px-2 text-white">{h.shares}</td>
+
                   <td className="py-4 px-2 text-white">
                     {toUSD(h.valuePerShareCents)}
                   </td>
+
                   <td className="py-4 px-2 text-white">
                     {toUSD(h.valuePerShareCents * h.shares)}
                   </td>
+
                   <td className="py-4 px-2">
-                    <Badge
-                        variant="secondary"
-                        className="bg-gray-700 text-white text-xs"
-                    >
+                    <Badge variant="secondary" className="bg-gray-700 text-white text-xs">
                       {h.lastDecision}
                     </Badge>
                   </td>
+
                   <td className="py-4 px-2">
-                    <div className="flex items-center gap-1">
-                      {isNegative ? (
-                          <>
-                        <span className="text-red-500">
-                          {changePercent.toFixed(2)}%
-                        </span>
-                          </>
-                      ) : (
-                          <>
-                        <span className="text-green-500">
-                          +{changePercent.toFixed(2)}%
-                        </span>
-                          </>
-                      )}
-                    </div>
+                  <span className={isNegative ? "text-red-500" : "text-green-500"}>
+                    {isNegative ? "" : "+"}
+                    {changePercent.toFixed(2)}%
+                  </span>
                   </td>
+
                   <td className="py-4 px-2">
                     <Button
                         variant="ghost"
                         size="sm"
                         className="text-gray-400 hover:text-white"
-                        onClick={() => {
-                          // Example: simply call onUpdate with a “toggle HOLD/buy logic”?
-                          // For now, we’ll re‐send the same holding. In real code, you’d open a Drawer.
-                          onUpdate({
-                            assetId: h.assetId,
-                            amount: h.shares,
-                            boughtPrice: h.buyPriceCents,
-                          });
-                        }}
+                        onClick={() =>
+                            onUpdate({
+                              assetId: h.assetId,
+                              amount: h.shares,
+                              boughtPrice: h.buyPriceCents,
+                            })
+                        }
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
+
                     <Button
                         variant="ghost"
                         size="sm"
@@ -230,14 +198,12 @@ export function AssetTable({
             );
           })}
 
-          {/* Footer row */}
+          {/* footer */}
           <tr className="border-t-2 border-gray-600 font-bold">
             <td className="py-4 px-2 text-white">Total</td>
             <td className="py-4 px-2"></td>
             <td className="py-4 px-2"></td>
-            <td className="py-4 px-2 text-white">
-              ${totalValue.toFixed(2)}
-            </td>
+            <td className="py-4 px-2 text-white">${totalValue.toFixed(2)}</td>
             <td className="py-4 px-2"></td>
             <td className="py-4 px-2"></td>
             <td className="py-4 px-2"></td>
