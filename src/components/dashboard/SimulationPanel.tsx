@@ -5,23 +5,23 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+} from "@/components/ui/card.tsx";
+import { Button } from "@/components/ui/button.tsx";
 import { Calendar as CalendarIcon } from "lucide-react";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
+} from "@/components/ui/popover.tsx";
+import { Calendar } from "@/components/ui/calendar.tsx";
+import { cn } from "@/lib/utils.ts";
+import { Badge } from "@/components/ui/badge.tsx";
 
-import { PortfolioHolding } from "@/model/PortfolioHolding";
+import { PortfolioHolding } from "@/model/PortfolioHolding.ts";
 import { DateRange } from "react-day-picker";
 import { format } from "date-fns";
 
-import { SimulationResults } from "@/components/SimulationResults";
+import { SimulationResults } from "@/components/dashboard/SimulationResults.tsx";
 
 interface SimulationPanelProps {
   holdings: PortfolioHolding[];

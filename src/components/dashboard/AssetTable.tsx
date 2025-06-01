@@ -1,14 +1,14 @@
 // src/components/AssetTable.tsx
 import { useEffect, useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge.tsx";
+import { Button } from "@/components/ui/button.tsx";
 import { Pencil } from "lucide-react";
 
-import { PortfolioHolding } from "@/model/PortfolioHolding";
-import { Asset } from "@/model/Asset";
-import { AssetsHttpService } from "@/services/assets-http-service";
-import { DecisionHttpService } from "@/services/decision-http-service";
-import { UsersHttpService } from "@/services/users-http-service";
+import { PortfolioHolding } from "@/model/PortfolioHolding.ts";
+import { Asset } from "@/model/Asset.ts";
+import { AssetsHttpService } from "@/services/assets-http-service.ts";
+import { DecisionHttpService } from "@/services/decision-http-service.ts";
+import { UsersHttpService } from "@/services/users-http-service.ts";
 
 const assetsService = new AssetsHttpService();
 const decisionService = new DecisionHttpService();

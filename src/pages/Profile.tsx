@@ -6,16 +6,16 @@ import {
     CardContent,
     CardHeader,
     CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+} from "@/components/ui/card.tsx";
+import { Button } from "@/components/ui/button.tsx";
+import { Input } from "@/components/ui/input.tsx";
+import { Label } from "@/components/ui/label.tsx";
+import { Badge } from "@/components/ui/badge.tsx";
 
 import { ArrowLeft } from "lucide-react";
 
-import { UsersHttpService } from "@/services/users-http-service";
-import { User } from "@/model/User";
+import { UsersHttpService } from "@/services/users-http-service.ts";
+import { User } from "@/model/User.ts";
 
 const usersService = new UsersHttpService();
 

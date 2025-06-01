@@ -1,7 +1,7 @@
 import {Navigate, useLocation} from "react-router-dom";
 import {ReactNode} from "react";
 import useAuth from "@/hooks/useAuth.ts";
-import {LoadingLayer} from "@/components/LoadingLayer.tsx";
+import {LoadingLayer} from "@/components/dashboard/LoadingLayer.tsx";
 
 export function RequireAuth({children}: { children: ReactNode }) {
     const {isAuthenticated, loading} = useAuth();
