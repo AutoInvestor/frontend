@@ -79,9 +79,9 @@ export function SimulationPanel({ holdings, riskLevel }: SimulationPanelProps) {
                       mode="range"
                       defaultMonth={dateRange?.from}
                       selected={dateRange}
-                      onSelect={(r: DateRange) => {
-                        if (r.from && r.to) {
-                          setDateRange(r);
+                      onSelect={(range?: DateRange) => {
+                        if (range?.from && range?.to) {
+                          setDateRange(range);
                         }
                       }}
                       numberOfMonths={2}
