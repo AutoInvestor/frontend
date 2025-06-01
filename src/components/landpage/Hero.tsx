@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button.tsx";
 import { Link } from "react-router-dom";
 import useAuth from "@/hooks/useAuth.ts";
 import { ArrowRightIcon } from "lucide-react";

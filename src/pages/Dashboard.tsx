@@ -6,16 +6,16 @@ import {
     CardContent,
     CardHeader,
     CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+} from "@/components/ui/card.tsx";
+import { Button } from "@/components/ui/button.tsx";
+import { Badge } from "@/components/ui/badge.tsx";
 import {
     AddAssetForm,
     AlertCard,
     AssetTable,
     NewsCard,
     SimulationPanel,
-} from "@/components";
+} from "@/components/dashboard";
 
 import { PortfolioHttpService } from "@/services/portfolio-http-service";
 import { AssetsHttpService } from "@/services/assets-http-service";
@@ -32,7 +32,8 @@ import { Decision } from "@/model/Decision";
 import { User } from "@/model/User";
 
 import {
-    AlertTriangle, ChevronRight,
+    AlertTriangle,
+    ChevronRight,
     Newspaper,
     Play,
     User as UserIcon,
@@ -83,13 +84,15 @@ export default function Dashboard() {
 
             const distinct = [...new Set(holdings.map((h) => h.assetId))];
             const assets = await Promise.all(distinct.map((id) => assetsService.getAsset(id)));
-            setAssetsMap(assets.reduce<Record<string, Asset>>((acc, a) => ({ ...acc, [a.assetId]: a }), {}));
+            setAssetsMap(
+                assets.reduce<Record<string, Asset>>((acc, a) => ({ ...acc, [a.assetId]: a }), {})
+            );
 
             const decisionsObj: Record<string, Decision[]> = {};
             await Promise.all(
                 distinct.map(async (assetId) => {
                     decisionsObj[assetId] = await decisionService.getDecisions(assetId, user.riskLevel);
-                }),
+                })
             );
             setDecisionsMap(decisionsObj);
         })().catch(console.error);
@@ -108,7 +111,9 @@ export default function Dashboard() {
             const missing = [...ids].filter((id) => !(id in assetsMap));
             if (missing.length) {
                 const newAssets = await Promise.all(missing.map((id) => assetsService.getAsset(id)));
-                setAssetsMap((prev) => newAssets.reduce((acc, a) => ({ ...acc, [a.assetId]: a }), prev));
+                setAssetsMap((prev) =>
+                    newAssets.reduce((acc, a) => ({ ...acc, [a.assetId]: a }), prev)
+                );
             }
         })().catch(console.error);
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -116,13 +121,39 @@ export default function Dashboard() {
     /* ------------------------------------------------------------------
      *  Derived data helpers
      * ----------------------------------------------------------------*/
-    const todaysNews = useMemo(() => newsItems.filter((n) => isToday(new Date(n.date))), [newsItems]);
-    const latestNewsItem = useMemo(() => [...newsItems].sort((a, b) => +new Date(b.date) - +new Date(a.date))[0], [newsItems]);
-    const recentAlerts = useMemo(() => alerts.filter((a) => +new Date(a.date) >= Date.now() - 86_400_000), [alerts]);
-    const latestAlert = useMemo(() => [...alerts].sort((a, b) => +new Date(b.date) - +new Date(a.date))[0], [alerts]);
+    const todaysNews = useMemo(
+        () => newsItems.filter((n) => isToday(new Date(n.date))),
+        [newsItems]
+    );
+    const latestNewsItem = useMemo(
+        () =>
+            [...newsItems].sort((a, b) => +new Date(b.date) - +new Date(a.date))[0],
+        [newsItems]
+    );
+    const recentAlerts = useMemo(
+        () => alerts.filter((a) => +new Date(a.date) >= Date.now() - 86_400_000),
+        [alerts]
+    );
+    const latestAlert = useMemo(
+        () =>
+            [...alerts].sort((a, b) => +new Date(b.date) - +new Date(a.date))[0],
+        [alerts]
+    );
 
-    const latestNewsTickers = useMemo(() => (latestNewsItem ? [assetsMap[latestNewsItem.assetId]?.ticker].filter(Boolean) : []), [latestNewsItem, assetsMap]);
-    const latestAlertsTickers = useMemo(() => (latestAlert ? [assetsMap[latestAlert.assetId]?.ticker].filter(Boolean) : []), [latestAlert, assetsMap]);
+    const latestNewsTickers = useMemo(
+        () =>
+            latestNewsItem
+                ? [assetsMap[latestNewsItem.assetId]?.ticker].filter(Boolean)
+                : [],
+        [latestNewsItem, assetsMap]
+    );
+    const latestAlertsTickers = useMemo(
+        () =>
+            latestAlert
+                ? [assetsMap[latestAlert.assetId]?.ticker].filter(Boolean)
+                : [],
+        [latestAlert, assetsMap]
+    );
 
     const formatTimestamp = (d: string | Date) => format(new Date(d), "MMM d, yyyy ‧ hh:mm a");
 
@@ -130,10 +161,11 @@ export default function Dashboard() {
      *  Helpers
      * ----------------------------------------------------------------*/
     const BaseLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-        <div className="min-h-screen bg-background text-foreground">
-            {children}
+        <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
+            <div className="w-full max-w-screen-xxl">{children}</div>
         </div>
     );
+
 
     /* ------------------------------------------------------------------
      *  Conditional routes (Simulation, News, Alerts)
@@ -143,7 +175,11 @@ export default function Dashboard() {
             <BaseLayout>
                 <header className="flex items-center justify-between px-6 py-3 border-b border-border">
                     <div className="flex items-center gap-4">
-                        <Button variant="ghost" onClick={() => setShowSimulation(false)} className="text-muted-foreground hover:text-foreground hover:bg-muted">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setShowSimulation(false)}
+                            className="text-muted-foreground hover:text-foreground hover:bg-muted"
+                        >
                             ← Back
                         </Button>
                         <h1 className="text-xl font-bold">Portfolio Simulation</h1>
@@ -167,7 +203,11 @@ export default function Dashboard() {
             <BaseLayout>
                 <header className="flex items-center justify-between px-6 py-3 border-b border-border">
                     <div className="flex items-center gap-4">
-                        <Button variant="ghost" onClick={() => setShowDetailedNews(false)} className="text-muted-foreground hover:text-foreground hover:bg-muted">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setShowDetailedNews(false)}
+                            className="text-muted-foreground hover:text-foreground hover:bg-muted"
+                        >
                             ← Back
                         </Button>
                         <h1 className="text-xl font-bold">Market News</h1>
@@ -181,7 +221,13 @@ export default function Dashboard() {
                 </header>
                 <div className="p-4 space-y-4 overflow-y-auto max-h-[calc(100vh-56px)]">
                     {newsItems.map((n) => (
-                        <NewsCard key={n.url} stocks={[assetsMap[n.assetId]?.ticker].filter(Boolean)} title={n.title} timestamp={formatTimestamp(n.date)} url={n.url} />
+                        <NewsCard
+                            key={n.url}
+                            stocks={[assetsMap[n.assetId]?.ticker].filter(Boolean)}
+                            title={n.title}
+                            timestamp={formatTimestamp(n.date)}
+                            url={n.url}
+                        />
                     ))}
                 </div>
             </BaseLayout>
@@ -193,7 +239,11 @@ export default function Dashboard() {
             <BaseLayout>
                 <header className="flex items-center justify-between px-6 py-3 border-b border-border">
                     <div className="flex items-center gap-4">
-                        <Button variant="ghost" onClick={() => setShowDetailedAlerts(false)} className="text-muted-foreground hover:text-foreground hover:bg-muted">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setShowDetailedAlerts(false)}
+                            className="text-muted-foreground hover:text-foreground hover:bg-muted"
+                        >
                             ← Back
                         </Button>
                         <h1 className="text-xl font-bold">Portfolio Alerts</h1>
@@ -208,8 +258,20 @@ export default function Dashboard() {
                 <div className="p-4 space-y-4 overflow-y-auto max-h-[calc(100vh-56px)]">
                     {alerts.map((a) => {
                         const asset = assetsMap[a.assetId];
-                        const msg = a.type === "BUY" ? "Technical indicators suggest buying opportunity" : a.type === "SELL" ? "Technical indicators suggest selling opportunity" : "Technical indicators suggest no change";
-                        return <AlertCard key={a.assetId + a.date} stock={asset?.ticker ?? ""} message={msg} timestamp={formatTimestamp(a.date)} />;
+                        const msg =
+                            a.type === "BUY"
+                                ? "Technical indicators suggest buying opportunity"
+                                : a.type === "SELL"
+                                    ? "Technical indicators suggest selling opportunity"
+                                    : "Technical indicators suggest no change";
+                        return (
+                            <AlertCard
+                                key={a.assetId + a.date}
+                                stock={asset?.ticker ?? ""}
+                                message={msg}
+                                timestamp={formatTimestamp(a.date)}
+                            />
+                        );
                     })}
                 </div>
             </BaseLayout>
@@ -225,10 +287,15 @@ export default function Dashboard() {
             <header className="flex items-center justify-between px-6 py-3 border-b border-border">
                 <div>
                     <h1 className="text-2xl font-bold leading-none">AutoInvestor</h1>
-                    <span className="text-muted-foreground text-xs tracking-wide">Portfolio Management</span>
+                    <span className="text-muted-foreground text-xs tracking-wide">
+            Portfolio Management
+          </span>
                 </div>
                 <div className="flex items-center gap-3">
-                    <Button onClick={() => setShowSimulation(true)} className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-1 h-8 px-3 text-sm">
+                    <Button
+                        onClick={() => setShowSimulation(true)}
+                        className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-1 h-8 px-3 text-sm"
+                    >
                         <Play className="h-4 w-4" />
                         Simulate
                     </Button>
@@ -241,9 +308,9 @@ export default function Dashboard() {
                 </div>
             </header>
 
-            {/* Content area – subtract header height (56 px) from viewport */}
-            <div className="p-4 lg:p-6 h-[calc(100vh-56px)]">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-full">
+            {/* Content area – no forced 100vh height */}
+            <div className="p-4 lg:p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     {/* -------------------- MAIN (Holdings) -------------------- */}
                     <Card className="bg-card border-border lg:col-span-2 flex flex-col min-h-0">
                         <CardHeader className="pb-2">
@@ -267,7 +334,7 @@ export default function Dashboard() {
                     </Card>
 
                     {/* -------------------- SIDEBAR -------------------- */}
-                    <div className="flex flex-col gap-4 h-full">
+                    <div className="flex flex-col gap-4">
                         {/* Quick Actions */}
                         <Card className="bg-card border-border flex flex-col">
                             <CardHeader className="pb-2">
@@ -277,7 +344,11 @@ export default function Dashboard() {
                                 <AddAssetForm
                                     availableAssets={Object.values(assetsMap)}
                                     onAdd={async (assetId, shares, price) => {
-                                        await portfolioService.createHolding({ assetId, amount: shares, boughtPrice: Math.round(price * 100) });
+                                        await portfolioService.createHolding({
+                                            assetId,
+                                            amount: shares,
+                                            boughtPrice: Math.round(price * 100),
+                                        });
                                         setPortfolioHoldings(await portfolioService.getPortfolioHoldings());
                                     }}
                                 />
@@ -285,7 +356,10 @@ export default function Dashboard() {
                         </Card>
 
                         {/* News */}
-                        <Card onClick={() => setShowDetailedNews(true)} className="bg-card border-border hover:bg-muted/50 transition-colors cursor-pointer">
+                        <Card
+                            onClick={() => setShowDetailedNews(true)}
+                            className="bg-card border-border hover:bg-muted/50 transition-colors cursor-pointer"
+                        >
                             <CardContent className="p-4 space-y-2">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
@@ -294,14 +368,18 @@ export default function Dashboard() {
                                         </div>
                                         <div>
                                             <h3 className="text-sm font-medium">Market News</h3>
-                                            <p className="text-muted-foreground text-xs">{todaysNews.length} new articles today</p>
+                                            <p className="text-muted-foreground text-xs">
+                                                {todaysNews.length} new articles today
+                                            </p>
                                         </div>
                                     </div>
                                     <ChevronRight className="h-5 w-5 text-muted-foreground" />
                                 </div>
                                 {latestNewsItem ? (
                                     <>
-                                        <p className="text-muted-foreground text-xs line-clamp-2">Latest: {latestNewsItem.title}</p>
+                                        <p className="text-muted-foreground text-xs line-clamp-2">
+                                            Latest: {latestNewsItem.title}
+                                        </p>
                                         <div className="flex gap-1 mt-1 flex-wrap">
                                             {latestNewsTickers.map((t) => (
                                                 <Badge key={t} variant="secondary" className="text-[10px]">
@@ -317,7 +395,10 @@ export default function Dashboard() {
                         </Card>
 
                         {/* Alerts */}
-                        <Card onClick={() => setShowDetailedAlerts(true)} className="bg-card border-border hover:bg-muted/50 transition-colors cursor-pointer">
+                        <Card
+                            onClick={() => setShowDetailedAlerts(true)}
+                            className="bg-card border-border hover:bg-muted/50 transition-colors cursor-pointer"
+                        >
                             <CardContent className="p-4 space-y-2">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
@@ -326,7 +407,9 @@ export default function Dashboard() {
                                         </div>
                                         <div>
                                             <h3 className="text-sm font-medium">Portfolio Alerts</h3>
-                                            <p className="text-muted-foreground text-xs">{recentAlerts.length} alerts in the last day</p>
+                                            <p className="text-muted-foreground text-xs">
+                                                {recentAlerts.length} alerts in the last day
+                                            </p>
                                         </div>
                                     </div>
                                     <ChevronRight className="h-5 w-5 text-muted-foreground" />
@@ -334,7 +417,12 @@ export default function Dashboard() {
                                 {latestAlert ? (
                                     <>
                                         <p className="text-muted-foreground text-xs line-clamp-2">
-                                            Latest: {latestAlert.type === "BUY" ? "Buy opportunity" : latestAlert.type === "SELL" ? "Sell opportunity" : "No change"}
+                                            Latest:{" "}
+                                            {latestAlert.type === "BUY"
+                                                ? "Buy opportunity"
+                                                : latestAlert.type === "SELL"
+                                                    ? "Sell opportunity"
+                                                    : "No change"}
                                         </p>
                                         <div className="flex gap-1 mt-1 flex-wrap">
                                             {latestAlertsTickers.map((t) => (

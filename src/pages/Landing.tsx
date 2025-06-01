@@ -1,5 +1,5 @@
-import Hero from "@/components/Hero";
-import DashboardPreview from "@/components/DashboardPreview";
+import Hero from "@/components/landpage/Hero.tsx";
+import DashboardPreview from "@/components/landpage/DashboardPreview.tsx";
 
 
 function Landing() {

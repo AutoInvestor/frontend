@@ -1,16 +1,16 @@
 // src/components/AddAssetForm.tsx
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button.tsx";
+import { Input } from "@/components/ui/input.tsx";
 import {
   Select,
   SelectTrigger,
   SelectValue,
   SelectContent,
   SelectItem,
-} from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
-import { Asset } from "@/model/Asset";
+} from "@/components/ui/select.tsx";
+import { useToast } from "@/hooks/use-toast.ts";
+import { Asset } from "@/model/Asset.ts";
 
 interface AddAssetFormProps {
   availableAssets: Asset[];

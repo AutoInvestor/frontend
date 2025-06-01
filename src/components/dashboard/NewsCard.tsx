@@ -1,16 +1,8 @@
-// src/components/NewsCard.tsx
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card.tsx";
+import { Badge } from "@/components/ui/badge.tsx";
+import { Button } from "@/components/ui/button.tsx";
 import { ExternalLink } from "lucide-react";
 
-/**
- * Props:
- *  - stocks: string[]    (e.g. ["AAPL", "TSLA"])
- *  - title: string
- *  - timestamp: string   (already formatted)
- *  - url: string         (link to the original news)
- */
 interface NewsCardProps {
   stocks: string[];
   title: string;
