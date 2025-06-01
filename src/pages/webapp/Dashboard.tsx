@@ -14,7 +14,6 @@ import {
     AlertCard,
     AssetTable,
     NewsCard,
-    PortfolioChart,
     SimulationPanel,
 } from "@/components";
 
@@ -34,15 +33,17 @@ import { User } from "@/model/User";
 
 import {
     AlertTriangle,
+    ChevronRight,
     Newspaper,
     Play,
-    TrendingDown,
-    TrendingUp,
     User as UserIcon,
 } from "lucide-react";
 
 import { format, isToday } from "date-fns";
 
+/* ------------------------------------------------------------------
+ *  Services (instantiated once outside the component)
+ * ----------------------------------------------------------------*/
 const portfolioService = new PortfolioHttpService();
 const assetsService = new AssetsHttpService();
 const decisionService = new DecisionHttpService();
@@ -51,10 +52,12 @@ const alertsService = new AlertsHttpService();
 const usersService = new UsersHttpService();
 
 export default function Dashboard() {
-    const [portfolioHoldings, setPortfolioHoldings] =
-        useState<PortfolioHolding[]>([]);
+    /* ------------------------------------------------------------------
+     *  Local state
+     * ----------------------------------------------------------------*/
+    const [portfolioHoldings, setPortfolioHoldings] = useState<PortfolioHolding[]>([]);
     const [assetsMap, setAssetsMap] = useState<Record<string, Asset>>({});
-    const [decisionsMap, setDecisionsMap] = useState<Record<string, Decision[]>>({});
+    const [, setDecisionsMap] = useState<Record<string, Decision[]>>({});
     const [user, setUser] = useState<User | null>(null);
 
     const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
@@ -64,185 +67,129 @@ export default function Dashboard() {
     const [showDetailedAlerts, setShowDetailedAlerts] = useState(false);
     const [showSimulation, setShowSimulation] = useState(false);
 
-    // 1) Load the user (for risk level, etc.)
+    /* ------------------------------------------------------------------
+     *  Data fetching
+     * ----------------------------------------------------------------*/
     useEffect(() => {
-        usersService.getUser().then((u) => setUser(u));
+        usersService.getUser().then(setUser).catch(console.error);
     }, []);
 
-    // 2) Load portfolio holdings, then fetch the necessary asset & decision data
+    /* -------------------- Portfolio + decisions -------------------- */
     useEffect(() => {
-        async function fetchPortfolioData() {
+        if (!user) return;
+
+        (async () => {
             const holdings = await portfolioService.getPortfolioHoldings();
             setPortfolioHoldings(holdings);
 
-            const distinctAssetIds = [...new Set(holdings.map((h) => h.assetId))];
-
-            const assetsArray = await Promise.all(
-                distinctAssetIds.map((id) => assetsService.getAsset(id))
-            );
-
+            const distinct = [...new Set(holdings.map((h) => h.assetId))];
+            const assets = await Promise.all(distinct.map((id) => assetsService.getAsset(id)));
             setAssetsMap(
-                assetsArray.reduce<Record<string, Asset>>((acc, asset) => {
-                    acc[asset.assetId] = asset;
-                    return acc;
-                }, {})
+                assets.reduce<Record<string, Asset>>((acc, a) => ({ ...acc, [a.assetId]: a }), {})
             );
 
-            if (user) {
-                const newDecisionsMap: Record<string, Decision[]> = {};
-                await Promise.all(
-                    distinctAssetIds.map(async (assetId) => {
-                        const ds = await decisionService.getDecisions(
-                            assetId,
-                            user.riskLevel
-                        );
-                        newDecisionsMap[assetId] = ds;
-                    })
-                );
-                setDecisionsMap(newDecisionsMap);
-            }
-        }
-
-        if (user) {
-            fetchPortfolioData().catch(console.error);
-        }
+            const decisionsObj: Record<string, Decision[]> = {};
+            await Promise.all(
+                distinct.map(async (assetId) => {
+                    decisionsObj[assetId] = await decisionService.getDecisions(assetId, user.riskLevel);
+                })
+            );
+            setDecisionsMap(decisionsObj);
+        })().catch(console.error);
     }, [user]);
 
-    // 3) Load News and Alerts
+    /* ---------------------- News + alerts -------------------------- */
     useEffect(() => {
-        async function fetchNewsAndAlerts() {
-            const [news, alertList] = await Promise.all([
+        (async () => {
+            const [news, al] = await Promise.all([
                 newsService.getNews(),
                 alertsService.getAlerts(),
             ]);
             setNewsItems(news);
-            setAlerts(alertList);
+            setAlerts(al);
 
-            const allAssetIds = new Set<string>();
-            news.forEach((n) => allAssetIds.add(n.assetId));
-            alertList.forEach((a) => allAssetIds.add(a.assetId));
-
-            const missingIds = Array.from(allAssetIds).filter((id) => !(id in assetsMap));
-            if (missingIds.length) {
-                const newAssets = await Promise.all(
-                    missingIds.map((id) => assetsService.getAsset(id))
+            const ids = new Set<string>();
+            news.forEach((n) => ids.add(n.assetId));
+            al.forEach((a) => ids.add(a.assetId));
+            const missing = [...ids].filter((id) => !(id in assetsMap));
+            if (missing.length) {
+                const newAssets = await Promise.all(missing.map((id) => assetsService.getAsset(id)));
+                setAssetsMap((prev) =>
+                    newAssets.reduce((acc, a) => ({ ...acc, [a.assetId]: a }), prev)
                 );
-                setAssetsMap((prev) => {
-                    const next = { ...prev };
-                    newAssets.forEach((a) => {
-                        next[a.assetId] = a;
-                    });
-                    return next;
-                });
             }
-        }
+        })().catch(console.error);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-        fetchNewsAndAlerts().catch(console.error);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    // 4) Compute derived portfolio summary (value, change, etc.)
-    const portfolioSummary = useMemo(() => {
-        let totalCurrentValueCents = 0;
-        let totalCostCents = 0;
-
-        portfolioHoldings.forEach((h) => {
-            const asset = assetsMap[h.assetId];
-            if (asset) {
-                const currentPriceCents = h.boughtPrice; // TODO: replace with real price fetch
-                totalCurrentValueCents += currentPriceCents * h.amount;
-                totalCostCents += h.boughtPrice * h.amount;
-            }
-        });
-
-        const currentValue = totalCurrentValueCents / 100;
-        const costValue = totalCostCents / 100;
-        const change = currentValue - costValue;
-        const changePercent = costValue === 0 ? 0 : (change / costValue) * 100;
-
-        return { currentValue, change, changePercent };
-    }, [portfolioHoldings, assetsMap]);
-
-    // 5) Compute “today’s” news summary
+    /* ------------------------------------------------------------------
+     *  Derived data helpers
+     * ----------------------------------------------------------------*/
     const todaysNews = useMemo(
         () => newsItems.filter((n) => isToday(new Date(n.date))),
         [newsItems]
     );
-
-    const latestNewsItem = useMemo(() => {
-        if (newsItems.length === 0) return null;
-        return [...newsItems].sort(
-            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        )[0];
-    }, [newsItems]);
-
-    // 6) Compute “last 24h” alerts summary
+    const latestNewsItem = useMemo(
+        () => [...newsItems].sort((a, b) => +new Date(b.date) - +new Date(a.date))[0],
+        [newsItems]
+    );
     const recentAlerts = useMemo(
-        () =>
-            alerts.filter(
-                (a) => new Date(a.date).getTime() >= Date.now() - 1000 * 60 * 60 * 24
-            ),
+        () => alerts.filter((a) => +new Date(a.date) >= Date.now() - 86_400_000),
+        [alerts]
+    );
+    const latestAlert = useMemo(
+        () => [...alerts].sort((a, b) => +new Date(b.date) - +new Date(a.date))[0],
         [alerts]
     );
 
-    const latestAlert = useMemo(() => {
-        if (alerts.length === 0) return null;
-        return [...alerts].sort(
-            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        )[0];
-    }, [alerts]);
-
-    // 7) Compute tickers arrays for latest news & alerts
-    const latestNewsTickers = useMemo(() => {
-        if (!latestNewsItem) return [];
-        const asset = assetsMap[latestNewsItem.assetId];
-        return asset ? [asset.ticker] : [];
-    }, [latestNewsItem, assetsMap]);
-
-    const latestAlertsTickers = useMemo(() => {
-        if (!latestAlert) return [];
-        const asset = assetsMap[latestAlert.assetId];
-        return asset ? [asset.ticker] : [];
-    }, [latestAlert, assetsMap]);
-
-    // 8) Timestamp formatter
-    const formatTimestamp = (dateStr: string | Date) =>
-        format(new Date(dateStr), "MMMM d, yyyy 'at' hh:mm:ss a");
-
-    // ------- Render helpers --------
-    const BaseLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-        <div className="min-h-screen bg-background text-foreground">
-            {children}
-        </div>
+    const latestNewsTickers = useMemo(
+        () =>
+            latestNewsItem
+                ? [assetsMap[latestNewsItem.assetId]?.ticker].filter(Boolean)
+                : [],
+        [latestNewsItem, assetsMap]
+    );
+    const latestAlertsTickers = useMemo(
+        () =>
+            latestAlert ? [assetsMap[latestAlert.assetId]?.ticker].filter(Boolean) : [],
+        [latestAlert, assetsMap]
     );
 
-    // ------------- Conditional pages -------------
+    const formatTimestamp = (d: string | Date) =>
+        format(new Date(d), "MMM d, yyyy ‧ hh:mm a");
+
+    /* ------------------------------------------------------------------
+     *  Helpers
+     * ----------------------------------------------------------------*/
+    const BaseLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+        <div className="min-h-screen bg-background text-foreground">{children}</div>
+    );
+
+    /* ------------------------------------------------------------------
+     *  Conditional routes (Simulation, News, Alerts)
+     * ----------------------------------------------------------------*/
     if (showSimulation) {
         return (
             <BaseLayout>
-                <header className="flex items-center justify-between p-6 border-b border-border">
+                <header className="flex items-center justify-between px-6 py-3 border-b border-border">
                     <div className="flex items-center gap-4">
                         <Button
                             variant="ghost"
                             onClick={() => setShowSimulation(false)}
                             className="text-muted-foreground hover:text-foreground hover:bg-muted"
                         >
-                            ← Back to Portfolio
+                            ← Back
                         </Button>
-                        <h1 className="text-2xl font-bold">Portfolio Simulation</h1>
+                        <h1 className="text-xl font-bold">Portfolio Simulation</h1>
                     </div>
                     <Link to="/profile">
                         <Button variant="ghost" className="flex items-center gap-2">
                             <UserIcon className="h-5 w-5" />
-                            <span>Profile</span>
+                            Profile
                         </Button>
                     </Link>
                 </header>
-                <div className="p-6">
-                    <SimulationPanel
-                        holdings={portfolioHoldings}
-                        riskLevel={user?.riskLevel ?? 1}
-                    />
+                <div className="p-4">
+                    <SimulationPanel holdings={portfolioHoldings} riskLevel={user?.riskLevel ?? 1} />
                 </div>
             </BaseLayout>
         );
@@ -251,38 +198,34 @@ export default function Dashboard() {
     if (showDetailedNews) {
         return (
             <BaseLayout>
-                <header className="flex items-center justify-between p-6 border-b border-border">
+                <header className="flex items-center justify-between px-6 py-3 border-b border-border">
                     <div className="flex items-center gap-4">
                         <Button
                             variant="ghost"
                             onClick={() => setShowDetailedNews(false)}
                             className="text-muted-foreground hover:text-foreground hover:bg-muted"
                         >
-                            ← Back to Portfolio
+                            ← Back
                         </Button>
-                        <h1 className="text-2xl font-bold">Market News</h1>
+                        <h1 className="text-xl font-bold">Market News</h1>
                     </div>
                     <Link to="/profile">
                         <Button variant="ghost" className="flex items-center gap-2">
                             <UserIcon className="h-5 w-5" />
-                            <span>Profile</span>
+                            Profile
                         </Button>
                     </Link>
                 </header>
-
-                <div className="p-6 space-y-4">
-                    {newsItems.map((n) => {
-                        const asset = assetsMap[n.assetId];
-                        return (
-                            <NewsCard
-                                key={n.url}
-                                stocks={asset ? [asset.ticker] : []}
-                                title={n.title}
-                                timestamp={formatTimestamp(n.date)}
-                                url={n.url}
-                            />
-                        );
-                    })}
+                <div className="p-4 space-y-4 overflow-y-auto max-h-[calc(100vh-56px)]">
+                    {newsItems.map((n) => (
+                        <NewsCard
+                            key={n.url}
+                            stocks={[assetsMap[n.assetId]?.ticker].filter(Boolean)}
+                            title={n.title}
+                            timestamp={formatTimestamp(n.date)}
+                            url={n.url}
+                        />
+                    ))}
                 </div>
             </BaseLayout>
         );
@@ -291,29 +234,28 @@ export default function Dashboard() {
     if (showDetailedAlerts) {
         return (
             <BaseLayout>
-                <header className="flex items-center justify-between p-6 border-b border-border">
+                <header className="flex items-center justify-between px-6 py-3 border-b border-border">
                     <div className="flex items-center gap-4">
                         <Button
                             variant="ghost"
                             onClick={() => setShowDetailedAlerts(false)}
                             className="text-muted-foreground hover:text-foreground hover:bg-muted"
                         >
-                            ← Back to Portfolio
+                            ← Back
                         </Button>
-                        <h1 className="text-2xl font-bold">Portfolio Alerts</h1>
+                        <h1 className="text-xl font-bold">Portfolio Alerts</h1>
                     </div>
                     <Link to="/profile">
                         <Button variant="ghost" className="flex items-center gap-2">
                             <UserIcon className="h-5 w-5" />
-                            <span>Profile</span>
+                            Profile
                         </Button>
                     </Link>
                 </header>
-
-                <div className="p-6 space-y-4">
+                <div className="p-4 space-y-4 overflow-y-auto max-h-[calc(100vh-56px)]">
                     {alerts.map((a) => {
                         const asset = assetsMap[a.assetId];
-                        const message =
+                        const msg =
                             a.type === "BUY"
                                 ? "Technical indicators suggest buying opportunity"
                                 : a.type === "SELL"
@@ -321,9 +263,9 @@ export default function Dashboard() {
                                     : "Technical indicators suggest no change";
                         return (
                             <AlertCard
-                                key={a.date + a.assetId}
-                                stock={asset ? asset.ticker : ""}
-                                message={message}
+                                key={a.assetId + a.date}
+                                stock={asset?.ticker ?? ""}
+                                message={msg}
                                 timestamp={formatTimestamp(a.date)}
                             />
                         );
@@ -333,210 +275,190 @@ export default function Dashboard() {
         );
     }
 
-    // ------------- Main dashboard -------------
+    /* ------------------------------------------------------------------
+     *  MAIN DASHBOARD (fits 768-px screens without page scroll)
+     * ----------------------------------------------------------------*/
     return (
         <BaseLayout>
             {/* Header */}
-            <header className="flex items-center justify-between p-6 border-b border-border">
+            <header className="flex items-center justify-between px-6 py-3 border-b border-border">
                 <div>
-                    <h1 className="text-2xl font-bold">AutoInvestor</h1>
-                    <p className="text-muted-foreground text-sm">Portfolio Management</p>
+                    <h1 className="text-2xl font-bold leading-none">AutoInvestor</h1>
+                    <span className="text-muted-foreground text-xs tracking-wide">
+            Portfolio Management
+          </span>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                     <Button
                         onClick={() => setShowSimulation(true)}
-                        className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2"
+                        className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-1 h-8 px-3 text-sm"
                     >
                         <Play className="h-4 w-4" />
                         Simulate
                     </Button>
-
                     <Link to="/profile">
-                        <Button variant="ghost" className="flex items-center gap-2">
-                            <UserIcon className="h-5 w-5" />
-                            <span>Profile</span>
+                        <Button
+                            variant="ghost"
+                            className="flex items-center gap-1 h-8 px-3 text-sm"
+                        >
+                            <UserIcon className="h-4 w-4" />
+                            Profile
                         </Button>
                     </Link>
                 </div>
             </header>
 
-            {/* Main Content */}
-            <div className="p-6 space-y-6">
-                {/* ========== Portfolio Performance & Quick Actions ========== */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <Card className="bg-card border-border lg:col-span-2">
-                        <CardHeader>
-                            <CardTitle>Portfolio Performance</CardTitle>
+            {/* Content area – subtract header height (56 px) from viewport */}
+            <div className="p-4 lg:p-6 h-[calc(100vh-56px)]">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-full">
+                    {/* -------------------- MAIN (Holdings) -------------------- */}
+                    <Card className="bg-card border-border lg:col-span-2 flex flex-col min-h-0 h-full">
+                        <CardHeader className="pb-2">
+                            <CardTitle>Your Holdings</CardTitle>
                         </CardHeader>
-                        <CardContent>
-                            <div className="flex items-center justify-between mb-4">
-                                <div>
-                                    <p className="text-3xl font-bold">
-                                        {`$${portfolioSummary.currentValue.toLocaleString(undefined, {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                        })}`}
-                                    </p>
-                                    <div className="flex items-center gap-2">
-                                        {portfolioSummary.change < 0 ? (
-                                            <TrendingDown className="h-4 w-4 text-red-400" />
-                                        ) : (
-                                            <TrendingUp className="h-4 w-4 text-green-400" />
-                                        )}
-                                        <span
-                                            className={
-                                                portfolioSummary.change < 0
-                                                    ? "text-red-400"
-                                                    : "text-green-400"
-                                            }
-                                        >
-                      {`$${Math.abs(portfolioSummary.change).toFixed(2)} (${portfolioSummary.changePercent.toFixed(2)}%)`}
-                    </span>
-                                    </div>
-                                </div>
-                            </div>
-                            <PortfolioChart
+                        {/* The table scrolls internally if it overflows */}
+                        <CardContent className="flex-1 min-h-0 overflow-y-auto">
+                            <AssetTable
                                 holdings={portfolioHoldings}
                                 assetsMap={assetsMap}
-                                decisionsMap={decisionsMap}
-                            />
-                        </CardContent>
-                    </Card>
-
-                    <Card className="bg-card border-border">
-                        <CardHeader>
-                            <CardTitle>Quick Actions</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <AddAssetForm
-                                availableAssets={Object.values(assetsMap)}
-                                onAdd={async (assetId: string, shares: number, buyPrice: number) => {
-                                    const newHolding: PortfolioHolding = {
-                                        assetId,
-                                        amount: shares,
-                                        boughtPrice: Math.round(buyPrice * 100),
-                                    };
-                                    await portfolioService.createHolding(newHolding);
-                                    const updated = await portfolioService.getPortfolioHoldings();
-                                    setPortfolioHoldings(updated);
+                                onUpdate={async (h) => {
+                                    await portfolioService.updateHolding(h);
+                                    setPortfolioHoldings(
+                                        await portfolioService.getPortfolioHoldings()
+                                    );
+                                }}
+                                onDelete={async (id) => {
+                                    await portfolioService.deleteHolding(id);
+                                    setPortfolioHoldings(
+                                        await portfolioService.getPortfolioHoldings()
+                                    );
                                 }}
                             />
                         </CardContent>
                     </Card>
-                </div>
 
-                {/* ========== Summary Cards: News & Alerts ========== */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* News Summary */}
-                    <Card
-                        className="bg-card border-border hover:bg-muted/50 transition-colors cursor-pointer"
-                        onClick={() => setShowDetailedNews(true)}
-                    >
-                        <CardContent className="p-6">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-primary/20 rounded-lg">
-                                        <Newspaper className="h-5 w-5 text-primary" />
+                    {/* -------------------- SIDEBAR -------------------- */}
+                    <div className="flex flex-col gap-4 h-full">
+                        {/* Quick Actions */}
+                        <Card className="bg-card border-border flex flex-col">
+                            <CardHeader className="pb-2">
+                                <CardTitle>Quick Actions</CardTitle>
+                            </CardHeader>
+                            <CardContent className="flex-1 overflow-y-auto">
+                                <AddAssetForm
+                                    availableAssets={Object.values(assetsMap)}
+                                    onAdd={async (assetId, shares, price) => {
+                                        await portfolioService.createHolding({
+                                            assetId,
+                                            amount: shares,
+                                            boughtPrice: Math.round(price * 100),
+                                        });
+                                        setPortfolioHoldings(
+                                            await portfolioService.getPortfolioHoldings()
+                                        );
+                                    }}
+                                />
+                            </CardContent>
+                        </Card>
+
+                        {/* News */}
+                        <Card
+                            onClick={() => setShowDetailedNews(true)}
+                            className="bg-card border-border hover:bg-muted/50 transition-colors cursor-pointer"
+                        >
+                            <CardContent className="p-4 space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <div className="p-1 bg-primary/20 rounded">
+                                            <Newspaper className="h-4 w-4 text-primary" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-base font-medium">Market News</h3>
+                                            <p className="text-muted-foreground text-sm">
+                                                {todaysNews.length} new articles today
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h3 className="font-medium">Market News</h3>
-                                        <p className="text-muted-foreground text-sm">
-                                            {todaysNews.length} new articles today
-                                        </p>
-                                    </div>
+                                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
                                 </div>
-                                <Play className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-                            </div>
-                            <div className="mt-4">
                                 {latestNewsItem ? (
                                     <>
-                                        <p className="text-muted-foreground text-sm">
+                                        <p className="text-muted-foreground text-sm line-clamp-2">
                                             Latest: {latestNewsItem.title}
                                         </p>
-                                        <div className="flex gap-2 mt-2">
+                                        <div className="flex gap-1 mt-1 flex-wrap">
                                             {latestNewsTickers.map((t) => (
-                                                <Badge key={t} variant="secondary" className="text-xs">
+                                                <Badge
+                                                    key={t}
+                                                    variant="secondary"
+                                                    className="text-[10px]"
+                                                >
                                                     {t}
                                                 </Badge>
                                             ))}
                                         </div>
                                     </>
                                 ) : (
-                                    <p className="text-muted-foreground text-sm">No news available</p>
+                                    <p className="text-muted-foreground text-sm">
+                                        No news available
+                                    </p>
                                 )}
-                            </div>
-                        </CardContent>
-                    </Card>
+                            </CardContent>
+                        </Card>
 
-                    {/* Alerts Summary */}
-                    <Card
-                        className="bg-card border-border hover:bg-muted/50 transition-colors cursor-pointer"
-                        onClick={() => setShowDetailedAlerts(true)}
-                    >
-                        <CardContent className="p-6">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-destructive/20 rounded-lg">
-                                        <AlertTriangle className="h-5 w-5 text-destructive" />
+                        {/* Alerts */}
+                        <Card
+                            onClick={() => setShowDetailedAlerts(true)}
+                            className="bg-card border-border hover:bg-muted/50 transition-colors cursor-pointer"
+                        >
+                            <CardContent className="p-4 space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <div className="p-1 bg-destructive/20 rounded">
+                                            <AlertTriangle className="h-4 w-4 text-destructive" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-base font-medium">
+                                                Portfolio Alerts
+                                            </h3>
+                                            <p className="text-muted-foreground text-sm">
+                                                {recentAlerts.length} alerts in the last day
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h3 className="font-medium">Portfolio Alerts</h3>
-                                        <p className="text-muted-foreground text-sm">
-                                            {recentAlerts.length} alerts in the last day
-                                        </p>
-                                    </div>
+                                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
                                 </div>
-                                <Play className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-                            </div>
-                            <div className="mt-4">
                                 {latestAlert ? (
                                     <>
-                                        <p className="text-muted-foreground text-sm">
+                                        <p className="text-muted-foreground text-sm line-clamp-2">
                                             Latest:{" "}
                                             {latestAlert.type === "BUY"
-                                                ? "Technical indicators suggest buying opportunity"
+                                                ? "Buy opportunity"
                                                 : latestAlert.type === "SELL"
-                                                    ? "Technical indicators suggest selling opportunity"
-                                                    : "Technical indicators suggest no change"}
+                                                    ? "Sell opportunity"
+                                                    : "No change"}
                                         </p>
-                                        <div className="flex gap-2 mt-2">
+                                        <div className="flex gap-1 mt-1 flex-wrap">
                                             {latestAlertsTickers.map((t) => (
-                                                <Badge key={t} variant="secondary" className="text-xs">
+                                                <Badge
+                                                    key={t}
+                                                    variant="secondary"
+                                                    className="text-[10px]"
+                                                >
                                                     {t}
                                                 </Badge>
                                             ))}
                                         </div>
                                     </>
                                 ) : (
-                                    <p className="text-muted-foreground text-sm">No alerts available</p>
+                                    <p className="text-muted-foreground text-sm">
+                                        No alerts available
+                                    </p>
                                 )}
-                            </div>
-                        </CardContent>
-                    </Card>
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
-
-                {/* ========== Your Holdings Table ========== */}
-                <Card className="bg-card border-border">
-                    <CardHeader>
-                        <CardTitle>Your Holdings</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <AssetTable
-                            holdings={portfolioHoldings}
-                            assetsMap={assetsMap}
-                            onUpdate={async (updatedHolding) => {
-                                await portfolioService.updateHolding(updatedHolding);
-                                const re = await portfolioService.getPortfolioHoldings();
-                                setPortfolioHoldings(re);
-                            }}
-                            onDelete={async (assetId) => {
-                                await portfolioService.deleteHolding(assetId);
-                                const re = await portfolioService.getPortfolioHoldings();
-                                setPortfolioHoldings(re);
-                            }}
-                        />
-                    </CardContent>
-                </Card>
             </div>
         </BaseLayout>
     );
