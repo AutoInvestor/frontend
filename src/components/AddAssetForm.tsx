@@ -1,3 +1,4 @@
+// src/components/AddAssetForm.tsx
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,36 +10,42 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-
 import { Asset } from "@/model/Asset";
 
 interface AddAssetFormProps {
   availableAssets: Asset[];
-  onAdd: (assetId: string, shares: number, buyPriceCents: number) => Promise<void>;
+  onAdd: (
+      assetId: string,
+      shares: number,
+      buyPriceCents: number
+  ) => Promise<void>;
 }
 
-export function AddAssetForm({ availableAssets, onAdd }: AddAssetFormProps) {
-  const [selectedAssetId, setSelectedAssetId] = useState<string>("");
-  const [shares, setShares] = useState<string>("");
-  const [buyPrice, setBuyPrice] = useState<string>("");
+export function AddAssetForm({
+                               availableAssets,
+                               onAdd,
+                             }: AddAssetFormProps) {
+  const [selectedAssetId, setSelectedAssetId] = useState("");
+  const [shares, setShares] = useState("");
+  const [buyPrice, setBuyPrice] = useState("");
   const { toast } = useToast();
 
-  const handleAdd = async () => {
+  async function handleAdd() {
     if (!selectedAssetId || !shares || !buyPrice) {
       toast({
-        title: "Missing Information",
+        title: "Missing information",
         description: "Please select an asset and enter both shares and price.",
         variant: "destructive",
       });
       return;
     }
-
-    const sharesNum = parseInt(shares, 10);
-    const priceNum = parseFloat(buyPrice);
-    if (isNaN(sharesNum) || sharesNum <= 0 || isNaN(priceNum) || priceNum <= 0) {
+    const sharesNum = Number.parseInt(shares, 10);
+    const priceNum = Number.parseFloat(buyPrice);
+    if (!sharesNum || sharesNum <= 0 || !priceNum || priceNum <= 0) {
       toast({
-        title: "Invalid Input",
-        description: "Please enter a positive number of shares and a valid price.",
+        title: "Invalid input",
+        description:
+            "Enter a positive number of shares and a valid purchase price.",
         variant: "destructive",
       });
       return;
@@ -48,43 +55,42 @@ export function AddAssetForm({ availableAssets, onAdd }: AddAssetFormProps) {
     try {
       await onAdd(selectedAssetId, sharesNum, buyPriceCents);
       toast({
-        title: "Asset Added",
-        description: `Added ${sharesNum} shares of ${
-            availableAssets.find((a) => a.assetId === selectedAssetId)?.ticker || ""
-        } at $${priceNum.toFixed(2)}.`,
+        title: "Asset added",
+        description: `Added ${sharesNum} × ${availableAssets.find(
+            (a) => a.assetId === selectedAssetId
+        )?.ticker} @ $${priceNum.toFixed(2)}.`,
       });
       setSelectedAssetId("");
       setShares("");
       setBuyPrice("");
-    } catch (err: unknown) {
-      // Narrow `err` to an Error instance if possible, otherwise use its string form
-      const message = err instanceof Error ? err.message : String(err);
+    } catch (err) {
       toast({
-        title: "Error Adding Asset",
-        description: message,
+        title: "Error adding asset",
+        description: err instanceof Error ? err.message : String(err),
         variant: "destructive",
       });
     }
-  };
+  }
 
   return (
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label className="mb-2 block text-sm font-medium text-muted-foreground">
             Add new asset
           </label>
+
           <Select value={selectedAssetId} onValueChange={setSelectedAssetId}>
-            <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-full">
+            <SelectTrigger className="w-full bg-muted border border-border text-foreground">
               <SelectValue placeholder="Select an asset" />
             </SelectTrigger>
-            <SelectContent className="bg-gray-700 border-gray-600">
-              {availableAssets.map((asset: Asset) => (
+            <SelectContent className="bg-muted border border-border">
+              {availableAssets.map((a) => (
                   <SelectItem
-                      key={asset.assetId}
-                      value={asset.assetId}
-                      className="text-white hover:bg-gray-600"
+                      key={a.assetId}
+                      value={a.assetId}
+                      className="hover:bg-muted/75 text-foreground"
                   >
-                    {asset.ticker} – {asset.mic}
+                    {a.ticker} – {a.mic}
                   </SelectItem>
               ))}
             </SelectContent>
@@ -92,7 +98,7 @@ export function AddAssetForm({ availableAssets, onAdd }: AddAssetFormProps) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label className="mb-2 block text-sm font-medium text-muted-foreground">
             Number of shares
           </label>
           <Input
@@ -101,12 +107,12 @@ export function AddAssetForm({ availableAssets, onAdd }: AddAssetFormProps) {
               value={shares}
               onChange={(e) => setShares(e.currentTarget.value)}
               placeholder="e.g. 10"
-              className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 w-full"
+              className="w-full bg-muted border border-border text-foreground placeholder-muted-foreground"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label className="mb-2 block text-sm font-medium text-muted-foreground">
             Bought price (USD)
           </label>
           <Input
@@ -116,15 +122,15 @@ export function AddAssetForm({ availableAssets, onAdd }: AddAssetFormProps) {
               value={buyPrice}
               onChange={(e) => setBuyPrice(e.currentTarget.value)}
               placeholder="e.g. 123.45"
-              className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 w-full"
+              className="w-full bg-muted border border-border text-foreground placeholder-muted-foreground"
           />
         </div>
 
         <Button
             onClick={handleAdd}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
         >
-          Add Asset
+          Add asset
         </Button>
       </div>
   );
