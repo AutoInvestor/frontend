@@ -1,49 +1,61 @@
-import {useState} from "react";
-import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
-import {Button} from "@/components/ui/button";
-import {Calendar as CalendarIcon} from "lucide-react";
-import {Popover, PopoverContent, PopoverTrigger,} from "@/components/ui/popover";
-import {Calendar} from "@/components/ui/calendar";
-import {cn} from "@/lib/utils";
-import {Badge} from "@/components/ui/badge";
+// src/components/SimulationPanel.tsx
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Calendar as CalendarIcon } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
-import {PortfolioHolding} from "@/model/PortfolioHolding";
-import {DateRange} from "react-day-picker";
-import {format} from "date-fns";
+import { PortfolioHolding } from "@/model/PortfolioHolding";
+import { DateRange } from "react-day-picker";
+import { format } from "date-fns";
 
-import {SimulationResults} from "@/components/SimulationResults";
+import { SimulationResults } from "@/components/SimulationResults";
 
 interface SimulationPanelProps {
   holdings: PortfolioHolding[];
   riskLevel: number;
 }
 
-export function SimulationPanel({ holdings, riskLevel }: SimulationPanelProps) {
+export function SimulationPanel({
+                                  holdings,
+                                  riskLevel,
+                                }: SimulationPanelProps) {
   const [dateRange, setDateRange] = useState<DateRange>({
-    from: new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000),
+    from: new Date(Date.now() - 7 * 86_400_000),
     to: new Date(),
   });
   const [showResults, setShowResults] = useState(false);
 
   const riskLevels = [
-    { level: 1, label: "Conservative", description: "Low risk, steady returns" },
+    { level: 1, label: "Conservative", description: "Low-risk, steady returns" },
     { level: 2, label: "Moderate", description: "Balanced risk & reward" },
-    { level: 3, label: "Aggressive", description: "Higher risk, higher potential returns" },
+    { level: 3, label: "Aggressive", description: "Higher risk, higher returns" },
     { level: 4, label: "Very Aggressive", description: "Maximum risk & returns" },
   ];
 
-  // We’ll let the parent (Dashboard) conditionally render whether the SimulationPanel is in “results” or “select” mode.
   if (showResults) {
     return <SimulationResults onBack={() => setShowResults(false)} />;
   }
 
   return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Time Period Selection */}
-          <Card className="bg-black border-gray-700">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          {/* ───── Time period ───── */}
+          <Card className="bg-card border border-border">
             <CardHeader>
-              <CardTitle className="text-white">Time period</CardTitle>
+              <CardTitle className="text-foreground">Time period</CardTitle>
             </CardHeader>
             <CardContent>
               <Popover>
@@ -51,7 +63,7 @@ export function SimulationPanel({ holdings, riskLevel }: SimulationPanelProps) {
                   <Button
                       variant="outline"
                       className={cn(
-                          "w-full justify-start text-left font-normal bg-gray-800 border-gray-600 text-white",
+                          "w-full justify-start bg-muted text-left font-normal text-foreground",
                           !dateRange?.from && "text-muted-foreground"
                       )}
                   >
@@ -71,7 +83,7 @@ export function SimulationPanel({ holdings, riskLevel }: SimulationPanelProps) {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent
-                    className="w-auto p-0 bg-gray-800 border-gray-600"
+                    className="w-auto p-0 bg-muted border border-border"
                     align="start"
                 >
                   <Calendar
@@ -79,50 +91,43 @@ export function SimulationPanel({ holdings, riskLevel }: SimulationPanelProps) {
                       mode="range"
                       defaultMonth={dateRange?.from}
                       selected={dateRange}
-                      onSelect={(range?: DateRange) => {
-                        if (range?.from && range?.to) {
-                          setDateRange(range);
-                        }
-                      }}
+                      onSelect={(r?: DateRange) => r?.from && r.to && setDateRange(r)}
                       numberOfMonths={2}
-                      className="bg-gray-800 text-white pointer-events-auto"
+                      className="pointer-events-auto bg-muted text-foreground"
                   />
                 </PopoverContent>
               </Popover>
             </CardContent>
           </Card>
 
-          {/* Risk Profile */}
-          <Card className="bg-black border-gray-700">
+          {/* ───── Risk profile ───── */}
+          <Card className="bg-card border border-border">
             <CardHeader>
-              <CardTitle className="text-white">Risk profile</CardTitle>
+              <CardTitle className="text-foreground">Risk profile</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-4 gap-2">
-                {riskLevels.map((risk) => (
+                {riskLevels.map(({ level }) => (
                     <Button
-                        key={risk.level}
-                        variant={riskLevel === risk.level ? "default" : "outline"}
+                        key={level}
+                        variant={riskLevel === level ? "default" : "outline"}
                         className={cn(
                             "h-12 text-lg font-bold",
-                            riskLevel === risk.level
-                                ? "bg-blue-600 hover:bg-blue-700 text-white"
-                                : "bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
+                            riskLevel === level
+                                ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                                : "bg-muted text-foreground hover:bg-muted/75"
                         )}
-                        onClick={() => {
-                          // if you want to allow changing risk on the fly:
-                          // setRiskProfile(risk.level);
-                        }}
                     >
-                      {risk.level}
+                      {level}
                     </Button>
                 ))}
               </div>
+
               <div className="mt-4">
-                <Badge variant="secondary" className="bg-gray-800 text-white">
+                <Badge variant="secondary" className="bg-muted text-foreground">
                   {riskLevels[riskLevel - 1].label}
                 </Badge>
-                <p className="text-sm text-gray-400 mt-1">
+                <p className="mt-1 text-sm text-muted-foreground">
                   {riskLevels[riskLevel - 1].description}
                 </p>
               </div>
@@ -130,36 +135,36 @@ export function SimulationPanel({ holdings, riskLevel }: SimulationPanelProps) {
           </Card>
         </div>
 
-        {/* Assets Selection (for now, we just show “Current portfolio” as a badge) */}
-        <Card className="bg-black border-gray-700">
+        {/* ───── Assets selection ───── */}
+        <Card className="bg-card border border-border">
           <CardHeader>
-            <CardTitle className="text-white">Assets selection</CardTitle>
+            <CardTitle className="text-foreground">Assets selection</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg">
+            <div className="flex items-center justify-between rounded-lg bg-muted p-4">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gray-600 rounded flex items-center justify-center">
+                <div className="flex h-8 w-8 items-center justify-center rounded bg-muted-foreground/30">
                   💼
                 </div>
                 <div>
-                  <h3 className="text-white font-medium">Current portfolio</h3>
-                  <p className="text-gray-400 text-sm">
+                  <h3 className="font-medium text-foreground">Current portfolio</h3>
+                  <p className="text-sm text-muted-foreground">
                     {holdings.length} assets selected
                   </p>
                 </div>
               </div>
-              <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
-                <div className="w-3 h-3 bg-white rounded-full"></div>
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary">
+                <div className="h-3 w-3 rounded-full bg-primary-foreground"></div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Run Simulation Button */}
+        {/* ───── Run button ───── */}
         <div className="flex justify-center">
           <Button
-              className="bg-white hover:bg-gray-200 text-black px-8 py-2 font-medium"
               onClick={() => setShowResults(true)}
+              className="px-8 py-2 font-medium bg-primary text-primary-foreground hover:bg-primary/90"
           >
             Run simulation
           </Button>

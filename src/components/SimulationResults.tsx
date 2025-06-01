@@ -1,8 +1,29 @@
-import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
-import {Button} from "@/components/ui/button";
-import {CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis,} from "recharts";
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
-import {ArrowLeft} from "lucide-react";
+// src/components/SimulationResults.tsx
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ArrowLeft } from "lucide-react";
 
 /**
  * Props:
@@ -13,8 +34,7 @@ interface SimulationResultsProps {
 }
 
 export function SimulationResults({ onBack }: SimulationResultsProps) {
-  // For now, we use hard‐coded data (just as a POC).
-  // Eventually you’ll replace this with the real “simulation” API call.
+  /* POC data – replace with real API data later */
   const data = [
     { date: "May 14", autoinvested: 3500, noAutoinvested: 3500 },
     { date: "May 16", autoinvested: 3650, noAutoinvested: 3450 },
@@ -29,96 +49,118 @@ export function SimulationResults({ onBack }: SimulationResultsProps) {
 
   return (
       <div className="space-y-6">
+        {/* ───── Header ───── */}
         <div className="flex items-center gap-4">
           <Button
               variant="ghost"
               onClick={onBack}
-              className="text-white hover:bg-gray-800"
+              className="text-foreground hover:bg-muted"
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
+            <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
-          <h2 className="text-2xl font-bold text-white">Simulation result</h2>
+          <h2 className="text-2xl font-bold text-foreground">
+            Simulation result
+          </h2>
         </div>
 
-        <Card className="bg-black border-gray-700">
+        {/* ───── Result card ───── */}
+        <Card className="bg-card border border-border">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="text-white text-lg">Simulation result</CardTitle>
-              <p className="text-gray-400 text-sm">
-                Showing how portfolio could have behaved if stock operations were
+              <CardTitle className="text-lg text-foreground">
+                Simulation result
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Showing how the portfolio could have behaved if operations were
                 instructed by AutoInvestor
               </p>
             </div>
+
             <Select defaultValue="overview">
-              <SelectTrigger className="w-32 bg-gray-800 border-gray-600 text-white">
+              <SelectTrigger className="w-32 bg-muted border border-border text-foreground">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-600">
-                <SelectItem value="overview" className="text-white">
+              <SelectContent className="bg-muted border border-border">
+                <SelectItem value="overview" className="text-foreground">
                   Overview
                 </SelectItem>
-                <SelectItem value="detailed" className="text-white">
+                <SelectItem value="detailed" className="text-foreground">
                   Detailed
                 </SelectItem>
               </SelectContent>
             </Select>
           </CardHeader>
+
           <CardContent>
+            {/* ───── Chart ───── */}
             <div className="h-96 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis dataKey="date" stroke="#9CA3AF" fontSize={12} />
-                  <YAxis
-                      stroke="#9CA3AF"
+                  <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="var(--border)"
+                  />
+                  <XAxis
+                      dataKey="date"
+                      stroke="var(--muted-foreground)"
                       fontSize={12}
-                      tickFormatter={(value) => `$${value.toLocaleString()}`}
+                  />
+                  <YAxis
+                      stroke="var(--muted-foreground)"
+                      fontSize={12}
+                      tickFormatter={(v) => `$${v.toLocaleString()}`}
                   />
                   <Tooltip
                       contentStyle={{
-                        backgroundColor: "#1F2937",
-                        border: "1px solid #374151",
+                        background: "var(--popover)",
+                        border: "1px solid var(--border)",
                         borderRadius: "8px",
-                        color: "#F9FAFB",
+                        color: "var(--popover-foreground)",
                       }}
-                      formatter={(value: number, name: string) => [
-                        `$${value.toLocaleString()}`,
-                        name === "autoinvested" ? "Autoinvested" : "No Autoinvested",
+                      formatter={(val: number, name: string) => [
+                        `$${val.toLocaleString()}`,
+                        name === "autoinvested"
+                            ? "Autoinvested"
+                            : "No Autoinvested",
                       ]}
                   />
-                  <Legend wrapperStyle={{ color: "#F9FAFB" }} />
-                  <Line
-                      type="monotone"
-                      dataKey="autoinvested"
-                      stroke="#3B82F6"
-                      strokeWidth={3}
-                      name="Autoinvested"
-                      dot={{ fill: "#3B82F6", strokeWidth: 2 }}
+                  <Legend
+                      wrapperStyle={{ color: "var(--foreground)" }}
                   />
                   <Line
+                      name="Autoinvested"
+                      type="monotone"
+                      dataKey="autoinvested"
+                      stroke="var(--chart-1)"
+                      strokeWidth={3}
+                      dot={{ fill: "var(--chart-1)", strokeWidth: 2 }}
+                  />
+                  <Line
+                      name="No Autoinvested"
                       type="monotone"
                       dataKey="noAutoinvested"
-                      stroke="#93C5FD"
+                      stroke="var(--chart-2)"
                       strokeWidth={3}
-                      name="No Autoinvested"
-                      dot={{ fill: "#93C5FD", strokeWidth: 2 }}
+                      dot={{ fill: "var(--chart-2)", strokeWidth: 2 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
             </div>
 
-            {/* Summary Cards */}
-            <div className="grid grid-cols-2 gap-4 mt-6">
-              <div className="bg-gray-800 p-4 rounded-lg">
-                <h4 className="text-blue-400 font-medium">Autoinvested</h4>
-                <p className="text-white text-2xl font-bold">$4,400.00</p>
-                <p className="text-green-400 text-sm">+25.7% gain</p>
+            {/* ───── Summary cards ───── */}
+            <div className="mt-6 grid grid-cols-2 gap-4">
+              <div className="rounded-lg bg-muted p-4">
+                <h4 className="font-medium text-primary">Autoinvested</h4>
+                <p className="text-2xl font-bold text-foreground">$4 400.00</p>
+                <p className="text-sm text-green-400">+25.7 % gain</p>
               </div>
-              <div className="bg-gray-800 p-4 rounded-lg">
-                <h4 className="text-blue-300 font-medium">No Autoinvested</h4>
-                <p className="text-white text-2xl font-bold">$3,650.00</p>
-                <p className="text-red-400 text-sm">+4.3% gain</p>
+              <div className="rounded-lg bg-muted p-4">
+                <h4 className="font-medium text-primary/80">
+                  No Autoinvested
+                </h4>
+                <p className="text-2xl font-bold text-foreground">$3 650.00</p>
+                <p className="text-sm text-red-400">+4.3 % gain</p>
               </div>
             </div>
           </CardContent>
