@@ -4,8 +4,9 @@ import {ReactNode, useEffect, useState} from "react";
 import {PortfolioHolding} from "@/model/PortfolioHolding.ts";
 import {AssetsHttpService} from "@/services/assets-http-service.ts";
 import {Asset} from "@/model/Asset.ts";
+import {useNavigate} from 'react-router-dom';
 
-import {PencilIcon} from "@heroicons/react/16/solid";
+import {ExclamationTriangleIcon, NewspaperIcon, PencilIcon,} from "@heroicons/react/16/solid";
 
 import {
     Drawer,
@@ -35,6 +36,11 @@ import {DecisionHttpService} from "@/services/decision-http-service.ts";
 import {UsersHttpService} from "@/services/users-http-service.ts";
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip.tsx";
 import {Badge} from "@/components/ui/badge.tsx";
+import {Card, CardDescription, CardHeader, CardTitle} from "@/components/ui/card.tsx";
+import {NewsItem} from "@/model/NewsItem.ts";
+import {Alert} from "@/model/Alert.ts";
+import {NewsHttpService} from "@/services/news-http-service.ts";
+import {AlertsHttpService} from "@/services/alerts-http-service.ts";
 
 const portfolioHttpService = new PortfolioHttpService();
 const assetsHttpService = new AssetsHttpService();
@@ -43,21 +49,86 @@ const decisionHttpService = new DecisionHttpService();
 
 function Dashboard() {
     return (
-        <>
-            <div>
-                <Summary/>
-                <div className={"mt-5"}>
-                    <Portfolio/>
-                </div>
+        <div className={"flex flex-row gap-5"}>
+            <div className={"flex-2"}>
+                <Portfolio/>
             </div>
-        </>
+            <div className={"flex-1"}>
+                <Summary/>
+            </div>
+        </div>
     )
 }
 
+const newsHttpService = new NewsHttpService();
+const alertsHttpService = new AlertsHttpService();
+
 function Summary() {
+    const [news, setNews] = useState<NewsItem[]>([]);
+    const [alerts, setAlerts] = useState<Alert[]>([]);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        async function fetchInitialData(): Promise<void> {
+            const news = await newsHttpService.getNews();
+            setNews(news);
+            const alerts = await alertsHttpService.getAlerts();
+            setAlerts(alerts);
+        }
+        fetchInitialData().then();
+    }, []);
+
+    const getLatestNews = () => {
+        return news.reverse().pop();
+    }
+
+    const getLatestAlert = () => {
+        return alerts.reverse().pop();
+    }
+
+    const isToday = (date: Date): boolean => {
+        const today = new Date();
+        return (
+            date.getDate() === today.getDate() &&
+            date.getMonth() === today.getMonth() &&
+            date.getFullYear() === today.getFullYear()
+        );
+    }
+
     return (
-        <>
-        </>
+        <div className={"flex flex-col gap-5"}>
+            <Card onClick={() => navigate("/news")} className={"md:flex-1 bg-neutral-100 shadow-none border-none cursor-pointer"}>
+                <CardHeader>
+                    <div className={"rounded-full bg-neutral-200 w-fit box-border p-3"}>
+                        <NewspaperIcon className={"size-6"}/>
+                    </div>
+                    <CardTitle className={"pt-3"}>Market news</CardTitle>
+                    <CardDescription>
+                        <p>{news.filter(item => isToday(item.date)).length} new articles today</p>
+                        <p>Latest: {getLatestNews()?.title}</p>
+                    </CardDescription>
+                </CardHeader>
+            </Card>
+            <Card onClick={() => navigate("/alerts")} className={"md:flex-1 bg-neutral-100 shadow-none border-none cursor-pointer"}>
+                <CardHeader>
+                    <div className={"rounded-full bg-neutral-200 w-fit box-border p-3"}>
+                        <ExclamationTriangleIcon className={"size-6"} />
+                    </div>
+                    <CardTitle className={"pt-3"}>Title</CardTitle>
+                    <CardDescription>
+                        <p>{alerts.filter(item => isToday(item.date)).length} alerts in the last day</p>
+                        <p>Latest: {
+                            getLatestAlert()?.type === "BUY"
+                                ? "Buy alert triggered"
+                                : (getLatestAlert()?.type === "SELL"
+                                    ? "Sell alert triggered"
+                                    : "No change")
+                        }</p>
+                    </CardDescription>
+                    <CardDescription></CardDescription>
+                </CardHeader>
+            </Card>
+        </div>
     )
 }
 
@@ -144,7 +215,8 @@ function Portfolio() {
     }, [holdings]);
 
     return (
-        <>
+        <div className={"flex flex-col gap-5 items-end"}>
+            <HoldingCreator onSubmit={onAddHolding}></HoldingCreator>
             <Table className={"mb-5"}>
                 <TableHeader>
                     <TableRow>
@@ -223,9 +295,7 @@ function Portfolio() {
                     </TableRow>
                 </TableFooter>
             </Table>
-            <h2 className={"text-2xl font-medium py-6 mt-6"}>Add new asset</h2>
-            <HoldingCreator onSubmit={onAddHolding}></HoldingCreator>
-        </>
+        </div>
     )
 }
 
@@ -274,7 +344,7 @@ function HoldingCreator({onSubmit}: {
                 </SelectContent>
             </Select>
             {asset ? <AssetDrawer assetId={asset.assetId} onSubmit={onSubmit}>
-                <Button>+ Add holding</Button>
+                <Button>Add holding</Button>
             </AssetDrawer> : ""}
         </div>
     )
