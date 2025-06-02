@@ -23,10 +23,10 @@ export default function Profile() {
             <div className={"flex flex-row gap-5"}>
                 <div className={"flex-1"}>
                     <h2 className={"text-2xl font-medium py-6"}>Personal information</h2>
-                    <Input type="email" disabled={true} value={user.email} />
+                    <Input type="email" disabled={true} value={user.email}/>
                     <div className={"flex flex-row gap-4 mt-4"}>
-                        <Input type="firstName" disabled={true} value={user.firstName} />
-                        <Input type="lastName" disabled={true} value={user.lastName} />
+                        <Input type="firstName" disabled={true} value={user.firstName}/>
+                        <Input type="lastName" disabled={true} value={user.lastName}/>
                     </div>
                 </div>
                 <div className={"flex-1"}>
@@ -37,9 +37,9 @@ export default function Profile() {
                         variant="outline" value={user.riskLevel.toString()}
                         onValueChange={newValue => {
                             if (newValue) {
-                                setUser(user => ({...user, riskLevel: parseInt(newValue)} as User))}
-                        }
-                        }
+                                setUser(user => ({...user, riskLevel: parseInt(newValue)} as User))
+                            }
+                        }}
                     >
                         {/* TODO: Fetch risk levels from back */}
                         {[1, 2, 3, 4].map((riskLevelItem, index) => (
@@ -53,10 +53,10 @@ export default function Profile() {
                         ))}
                     </ToggleGroup>
                     <Badge className={"mt-2"} variant="secondary">
-                        { user.riskLevel === 1 && "Conservative" }
-                        { user.riskLevel === 2 && "Moderate" }
-                        { user.riskLevel === 3 && "Aggressive" }
-                        { user.riskLevel === 4 && "Very aggressive" }
+                        {user.riskLevel === 1 && "Conservative"}
+                        {user.riskLevel === 2 && "Moderate"}
+                        {user.riskLevel === 3 && "Aggressive"}
+                        {user.riskLevel === 4 && "Very aggressive"}
                     </Badge>
                 </div>
             </div>

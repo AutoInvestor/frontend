@@ -57,12 +57,14 @@ function Simulation() {
     const [simulationConfig, setSimulationConfig] = useState<SimulationConfig>();
 
     return (
-        <>
-            <div>
+        <div className={"flex flex-row gap-5"}>
+            <div className={"flex-1"}>
                 <SimulationConfig setSimulationConfig={setSimulationConfig}/>
+            </div>
+            <div className={"flex-1"}>
                 <SimulationResults simulationConfig={simulationConfig}/>
             </div>
-        </>
+        </div>
     )
 }
 
@@ -89,70 +91,80 @@ function SimulationConfig({setSimulationConfig}: {
     }
 
     return (
-        <>
-            <div className={"mt-5"}>
-                <h2 className={"text-2xl font-medium py-6"}>Time period</h2>
-                <DatePickerRange value={dateRange} onValueChange={setDateRange}/>
-            </div>
-            <div className={"mt-5"}>
-                <h2 className={"text-2xl font-medium py-6"}>Risk profile</h2>
-                <ToggleGroup
-                    size="lg"
-                    type="single"
-                    variant="outline" value={riskLevel.toString()}
-                    onValueChange={newValue => setRiskLevel(parseInt(newValue))}
-                >
-                    {/* TODO: Fetch risk levels from back */}
-                    {[1, 2, 3, 4].map((riskLevelItem, index) => (
-                        <ToggleGroupItem
-                            key={index}
-                            value={riskLevelItem.toString()}
-                            aria-label={`Toggle risk level ${riskLevelItem}`}
-                        >
-                            {riskLevelItem}
-                        </ToggleGroupItem>
-                    ))}
-                </ToggleGroup>
-            </div>
-            <div className={"mt-5"}>
-                <h2 className={"text-2xl font-medium py-6"}>Assets selection</h2>
-                <div className={"flex gap-y-4 flex-col"}>
-                    <div className={"flex flex-row gap-4 items-center"}>
-                        <div className={"rounded-xl bg-neutral-100 w-fit box-border p-3"}>
-                            <WalletIcon className={"size-6"}/>
-                        </div>
-                        <div className={"flex-1"}>
-                            <p>Current portfolio</p>
-                            <p className={"font-light text-neutral-500 pt-1"}>All assets in your current portfolio</p>
-                        </div>
-                        <div className={"text-neutral-500"}>
-                            <Switch
-                                onCheckedChange={event => event ? addPortfolioHoldings() : removePortfolioHoldings()}/>
+        <Card className={"shadow-none box-border py-6"}>
+            <div className={"box-border p-5"}>
+                <div className={""}>
+                    <p className={"font-semibold pb-2"}>Time period</p>
+                    <DatePickerRange value={dateRange} onValueChange={setDateRange}/>
+                </div>
+                <div className={"mt-4"}>
+                    <p className={"font-semibold pb-2"}>Risk profile</p>
+                    <ToggleGroup
+                        size="lg"
+                        type="single"
+                        variant="outline" value={riskLevel.toString()}
+                        onValueChange={newValue => {
+                            if (newValue) setRiskLevel(parseInt(newValue))
+                        }}
+                    >
+                        {/* TODO: Fetch risk levels from back */}
+                        {[1, 2, 3, 4].map((riskLevelItem, index) => (
+                            <ToggleGroupItem
+                                key={index}
+                                value={riskLevelItem.toString()}
+                                aria-label={`Toggle risk level ${riskLevelItem}`}
+                            >
+                                {riskLevelItem}
+                            </ToggleGroupItem>
+                        ))}
+                    </ToggleGroup>
+                    <Badge className={"mt-2"} variant="secondary">
+                        {riskLevel === 1 && "Conservative"}
+                        {riskLevel === 2 && "Moderate"}
+                        {riskLevel === 3 && "Aggressive"}
+                        {riskLevel === 4 && "Very aggressive"}
+                    </Badge>
+                </div>
+                <div className={"mt-4"}>
+                    <p className={"font-semibold pb-2"}>Assets selection</p>
+                    <div className={"flex gap-y-4 flex-col"}>
+                        <div className={"flex flex-row gap-4 items-center"}>
+                            <div className={"rounded-xl bg-neutral-100 w-fit box-border p-3"}>
+                                <WalletIcon className={"size-6"}/>
+                            </div>
+                            <div className={"flex-1"}>
+                                <p>Current portfolio</p>
+                                <p className={"font-light text-neutral-500 pt-1"}>All assets in your current portfolio</p>
+                            </div>
+                            <div className={"text-neutral-500"}>
+                                <Switch
+                                    onCheckedChange={event => event ? addPortfolioHoldings() : removePortfolioHoldings()}/>
+                            </div>
                         </div>
                     </div>
                 </div>
+                <div className={"mt-4"}>
+                    <Button className={"block mb-2 cursor-pointer"}
+                            disabled={simulationItems.length === 0 || !dateRange}
+                            onClick={() => {
+                                if (!dateRange?.from || !dateRange?.to) return;
+                                setSimulationConfig({
+                                    fromDate: dateRange.from,
+                                    toDate: dateRange.to,
+                                    riskLevel: riskLevel,
+                                    simulationItems: simulationItems
+                                })
+                            }}>
+                        Run simulation
+                    </Button>
+                    {simulationItems.length > 0 && (
+                        <Badge variant="outline">
+                            {simulationItems.length} assets selected
+                        </Badge>
+                    )}
+                </div>
             </div>
-            <div className={"mt-10"}>
-                <Button className={"block mb-2 cursor-pointer"}
-                        disabled={simulationItems.length === 0 || !dateRange}
-                        onClick={() => {
-                            if (!dateRange?.from || !dateRange?.to) return;
-                            setSimulationConfig({
-                                fromDate: dateRange.from,
-                                toDate: dateRange.to,
-                                riskLevel: riskLevel,
-                                simulationItems: simulationItems
-                            })
-                        }}>
-                    Run simulation
-                </Button>
-                {simulationItems.length > 0 && (
-                    <Badge variant="outline">
-                        {simulationItems.length} assets selected
-                    </Badge>
-                )}
-            </div>
-        </>
+        </Card>
     )
 }
 
@@ -280,8 +292,8 @@ function SimulationResults({simulationConfig}: {
 
     return (
         <>
-            {isLoading && <LoadingLayer />}
-            {simulationConfig && <div className={"my-5"}>
+            {isLoading && <LoadingLayer/>}
+            {simulationConfig && <div>
                 <DataChart
                     data={chartData}
                     filterBy={(item) => {
@@ -346,7 +358,7 @@ function DataChart<T extends BaseChartData>
     }, [data, selectedData, filterBy]);
 
     return (
-        <Card>
+        <Card className={"shadow-none"}>
             <CardHeader className="flex items-center gap-4 space-y-0 border-b py-5 sm:flex-row flex-col">
                 <div className="grid flex-1 gap-1 text-center sm:text-left">
                     <CardTitle>Simulation result</CardTitle>
