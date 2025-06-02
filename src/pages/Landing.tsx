@@ -173,5 +173,4 @@ export function ChartAreaLegend() {
     )
 }
 
-
 export default Landing;
