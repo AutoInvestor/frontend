@@ -36,7 +36,7 @@ import {DecisionHttpService} from "@/services/decision-http-service.ts";
 import {UsersHttpService} from "@/services/users-http-service.ts";
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip.tsx";
 import {Badge} from "@/components/ui/badge.tsx";
-import {Card, CardDescription, CardHeader, CardTitle} from "@/components/ui/card.tsx";
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card.tsx";
 import {NewsItem} from "@/model/NewsItem.ts";
 import {Alert} from "@/model/Alert.ts";
 import {NewsHttpService} from "@/services/news-http-service.ts";
@@ -75,6 +75,7 @@ function Summary() {
             const alerts = await alertsHttpService.getAlerts();
             setAlerts(alerts);
         }
+
         fetchInitialData().then();
     }, []);
 
@@ -97,7 +98,8 @@ function Summary() {
 
     return (
         <div className={"flex flex-col gap-5"}>
-            <Card onClick={() => navigate("/news")} className={"md:flex-1 bg-neutral-100 shadow-none border-none cursor-pointer"}>
+            <Card onClick={() => navigate("/news")}
+                  className={"md:flex-1 bg-neutral-100 shadow-none border-none cursor-pointer"}>
                 <CardHeader>
                     <div className={"rounded-full bg-neutral-200 w-fit box-border p-3"}>
                         <NewspaperIcon className={"size-6"}/>
@@ -109,10 +111,11 @@ function Summary() {
                     </CardDescription>
                 </CardHeader>
             </Card>
-            <Card onClick={() => navigate("/alerts")} className={"md:flex-1 bg-neutral-100 shadow-none border-none cursor-pointer"}>
+            <Card onClick={() => navigate("/alerts")}
+                  className={"md:flex-1 bg-neutral-100 shadow-none border-none cursor-pointer"}>
                 <CardHeader>
                     <div className={"rounded-full bg-neutral-200 w-fit box-border p-3"}>
-                        <ExclamationTriangleIcon className={"size-6"} />
+                        <ExclamationTriangleIcon className={"size-6"}/>
                     </div>
                     <CardTitle className={"pt-3"}>Title</CardTitle>
                     <CardDescription>
@@ -187,6 +190,7 @@ function Portfolio() {
             const holdings = await portfolioHttpService.getPortfolioHoldings();
             setHoldings(holdings);
         }
+
         fetchInitialData().then();
     }, []);
 
@@ -211,91 +215,103 @@ function Portfolio() {
             }));
             setAssetHoldings(assets);
         }
+
         fetchInitialData().then();
     }, [holdings]);
 
     return (
-        <div className={"flex flex-col gap-5 items-end"}>
-            <HoldingCreator onSubmit={onAddHolding}></HoldingCreator>
-            <Table className={"mb-5"}>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead className="w-[100px]">Ticker</TableHead>
-                        <TableHead>Shares</TableHead>
-                        <TableHead>Value per share</TableHead>
-                        <TableHead>Total value</TableHead>
-                        <TableHead>Last decision</TableHead>
-                        <TableHead className="text-right">Change (%)</TableHead>
-                        <TableHead colSpan={1}></TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {assetHoldings.map(holding => {
-                        const difference = percentageChange(holding.valueShare, holding.buyPrice);
-                        return (
-                            <TableRow key={holding.assetId} className={""}>
-                                <TableCell>
-                                    <span className={'text-neutral-400'}>{holding.mic}</span>
-                                    <span className="ps-2 font-medium">{holding.ticker}</span>
-                                </TableCell>
-                                <TableCell>{holding.shares}</TableCell>
-                                <TableCell>{toUSD(holding.valueShare)}</TableCell>
-                                <TableCell>{toUSD(holding.valueShare * holding.shares)}</TableCell>
-                                <TableCell>
-                                    <TooltipProvider>
-                                        <Tooltip>
-                                            <TooltipTrigger>
-                                                <Badge className={`${holding.lastDecision === "BUY"
-                                                    ? "bg-green-700"
-                                                    : (holding.lastDecision === "SELL"
-                                                        ? "bg-red-700"
-                                                        : "")}`} variant={"default"}>
-                                                    {holding.lastDecision}
-                                                </Badge>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p>{holding.lastDecisionDate.toLocaleString('en-US', {
-                                                    year: 'numeric',
-                                                    month: 'long',
-                                                    day: 'numeric',
-                                                    hour: 'numeric',
-                                                    minute: '2-digit',
-                                                    second: '2-digit',
-                                                    hour12: true,
-                                                })}</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
-                                </TableCell>
-                                <TableCell
-                                    className={`text-right font-medium ${difference.includes('-') ? 'text-red-700' : 'text-green-700'}`}>{difference}</TableCell>
-                                <TableCell>
-                                    <AssetDrawer
-                                        assetId={holding.assetId}
-                                        buyPrice={holding.buyPrice}
-                                        shares={holding.shares}
-                                        onSubmit={onUpdateHolding}
-                                        onDelete={onDeleteHolding}>
-                                        <PencilIcon className={"size-4"}></PencilIcon>
-                                    </AssetDrawer>
-                                </TableCell>
+        <>
+            <Card className={"shadow-none box-border p-5"}>
+                <div className={"flex flex-col gap-5 items-end"}>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-[100px]">Ticker</TableHead>
+                                <TableHead>Shares</TableHead>
+                                <TableHead>Value per share</TableHead>
+                                <TableHead>Total value</TableHead>
+                                <TableHead>Last decision</TableHead>
+                                <TableHead className="text-right">Change (%)</TableHead>
+                                <TableHead colSpan={1}></TableHead>
                             </TableRow>
-                        )
-                    })}
-                </TableBody>
-                <TableFooter>
-                    <TableRow>
-                        <TableCell colSpan={3}>Total</TableCell>
-                        <TableCell>{
-                            toUSD(assetHoldings
-                                .map(holding => holding.shares * holding.valueShare)
-                                .reduce((previous, current) => previous + current, 0))
-                        }</TableCell>
-                        <TableCell colSpan={3}></TableCell>
-                    </TableRow>
-                </TableFooter>
-            </Table>
-        </div>
+                        </TableHeader>
+                        <TableBody>
+                            {assetHoldings.map(holding => {
+                                const difference = percentageChange(holding.valueShare, holding.buyPrice);
+                                return (
+                                    <TableRow key={holding.assetId} className={""}>
+                                        <TableCell>
+                                            <span className={'text-neutral-400'}>{holding.mic}</span>
+                                            <span className="ps-2 font-medium">{holding.ticker}</span>
+                                        </TableCell>
+                                        <TableCell>{holding.shares}</TableCell>
+                                        <TableCell>{toUSD(holding.valueShare)}</TableCell>
+                                        <TableCell>{toUSD(holding.valueShare * holding.shares)}</TableCell>
+                                        <TableCell>
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger>
+                                                        <Badge className={`${holding.lastDecision === "BUY"
+                                                            ? "bg-green-700"
+                                                            : (holding.lastDecision === "SELL"
+                                                                ? "bg-red-700"
+                                                                : "")}`} variant={"default"}>
+                                                            {holding.lastDecision}
+                                                        </Badge>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>{holding.lastDecisionDate.toLocaleString('en-US', {
+                                                            year: 'numeric',
+                                                            month: 'long',
+                                                            day: 'numeric',
+                                                            hour: 'numeric',
+                                                            minute: '2-digit',
+                                                            second: '2-digit',
+                                                            hour12: true,
+                                                        })}</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        </TableCell>
+                                        <TableCell
+                                            className={`text-right font-medium ${difference.includes('-') ? 'text-red-700' : 'text-green-700'}`}>{difference}</TableCell>
+                                        <TableCell>
+                                            <AssetDrawer
+                                                assetId={holding.assetId}
+                                                buyPrice={holding.buyPrice}
+                                                shares={holding.shares}
+                                                onSubmit={onUpdateHolding}
+                                                onDelete={onDeleteHolding}>
+                                                <PencilIcon className={"size-4"}></PencilIcon>
+                                            </AssetDrawer>
+                                        </TableCell>
+                                    </TableRow>
+                                )
+                            })}
+                        </TableBody>
+                        <TableFooter>
+                            <TableRow>
+                                <TableCell colSpan={3}>Total</TableCell>
+                                <TableCell>{
+                                    toUSD(assetHoldings
+                                        .map(holding => holding.shares * holding.valueShare)
+                                        .reduce((previous, current) => previous + current, 0))
+                                }</TableCell>
+                                <TableCell colSpan={3}></TableCell>
+                            </TableRow>
+                        </TableFooter>
+                    </Table>
+                </div>
+            </Card>
+            <Card className={"shadow-none box-border mt-5"}>
+                <CardHeader>
+                    <CardTitle>Add new asset to portfolio</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <HoldingCreator onSubmit={onAddHolding}></HoldingCreator>
+                </CardContent>
+            </Card>
+        </>
     )
 }
 
@@ -323,7 +339,7 @@ function HoldingCreator({onSubmit}: {
     }, []);
 
     return (
-        <div className={"flex gap-3"}>
+        <div className={"flex justify-between"}>
             <Select onValueChange={value => {
                 setAsset(availableAssets.find(asset => asset.assetId === value));
             }}>
@@ -343,9 +359,10 @@ function HoldingCreator({onSubmit}: {
                     })}
                 </SelectContent>
             </Select>
-            {asset ? <AssetDrawer assetId={asset.assetId} onSubmit={onSubmit}>
-                <Button>Add holding</Button>
-            </AssetDrawer> : ""}
+            {asset && <AssetDrawer assetId={asset.assetId} onSubmit={onSubmit}>
+                <Button className={"cursor-pointer"}>Add holding</Button>
+            </AssetDrawer>}
+            {!asset && <Button disabled>Add holding</Button>}
         </div>
     )
 }
