@@ -5,6 +5,7 @@ import {AlertsHttpService} from "@/services/alerts-http-service.ts";
 import {AssetsHttpService} from "@/services/assets-http-service.ts";
 import {Asset} from "@/model/Asset.ts";
 import {Badge} from "@/components/ui/badge.tsx";
+import {Card} from "@/components/ui/card.tsx";
 
 const alertsHttpService = new AlertsHttpService();
 const assetsHttpService = new AssetsHttpService();
@@ -31,6 +32,7 @@ function RecentAlerts() {
             setAssets(assets);
             setAlerts(alerts);
         }
+
         fetchData().then();
     }, [])
 
@@ -47,43 +49,51 @@ function RecentAlerts() {
             {alerts.map((alert) => {
                 const asset = getAsset(alert.assetId);
                 return (
-                    <div className={"flex flex-row gap-4 items-center"}>
-                        <div className={"rounded-xl bg-neutral-100 w-fit box-border p-3"}>
-                            {alert.type === "BUY"
-                                ? <ArrowTrendingUpIcon className={"size-6"}/>
-                                : (alert.type === "SELL"
-                                    ? <ArrowTrendingDownIcon className={"size-6"}/>
-                                    : <EqualsIcon className={"size-6"}/>)
-                            }
-                        </div>
-                        <div className={"flex-1"}>
-                            <p>
-                                <Badge variant="outline">
-                                    <span className={'text-neutral-400'}>{asset.mic}</span>
-                                    <span className="ps-0.5 font-medium">{asset.ticker}</span>
-                                </Badge>
-                            </p>
-                            <p className={"font-light text-neutral-500 pt-1"}>
-                                {alert.type === "BUY"
-                                    ? "Technical indicators sugests buying opportunity"
+                    <Card className={"shadow-none"}>
+                        <div className={"flex flex-row gap-4 items-center px-5"}>
+                            <div className={`rounded-xl ${
+                                alert.type === "BUY"
+                                    ? "text-green-700 border-green-700/20"
                                     : (alert.type === "SELL"
-                                        ? "Technical indicators sugests selling opportunity"
-                                        : "Technical indicators sugests no change")
+                                        ? "text-red-700 border-red-700/20"
+                                        : "text-black")
+                            } bg-neutral-100 w-fit box-border p-3 border`}>
+                                {alert.type === "BUY"
+                                    ? <ArrowTrendingUpIcon className={"size-6"}/>
+                                    : (alert.type === "SELL"
+                                        ? <ArrowTrendingDownIcon className={"size-6"}/>
+                                        : <EqualsIcon className={"size-6"}/>)
                                 }
-                            </p>
+                            </div>
+                            <div className={"flex-1"}>
+                                <p>
+                                    <Badge variant="outline">
+                                        <span className={'text-neutral-400'}>{asset.mic}</span>
+                                        <span className="ps-0.5 font-medium">{asset.ticker}</span>
+                                    </Badge>
+                                </p>
+                                <p className={"font-light text-neutral-500 pt-1"}>
+                                    {alert.type === "BUY"
+                                        ? "Technical indicators sugests buying opportunity"
+                                        : (alert.type === "SELL"
+                                            ? "Technical indicators sugests selling opportunity"
+                                            : "Technical indicators sugests no change")
+                                    }
+                                </p>
+                            </div>
+                            <div className={"text-neutral-500"}>
+                                <small>{alert.date.toLocaleString('en-US', {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric',
+                                    hour: 'numeric',
+                                    minute: '2-digit',
+                                    second: '2-digit',
+                                    hour12: true,
+                                })}</small>
+                            </div>
                         </div>
-                        <div className={"text-neutral-500"}>
-                            <small>{alert.date.toLocaleString('en-US', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
-                                hour: 'numeric',
-                                minute: '2-digit',
-                                second: '2-digit',
-                                hour12: true,
-                            })}</small>
-                        </div>
-                    </div>
+                    </Card>
                 )
             })}
         </div>
