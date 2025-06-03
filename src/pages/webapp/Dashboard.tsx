@@ -199,6 +199,10 @@ function ChartLineDots({ chartData }: { chartData: ChartData[] }) {
                             tickLine={false}
                             axisLine={false}
                             tickMargin={8}
+                            domain={([dataMin, dataMax]) => {
+                                const margin = (dataMax - dataMin)/10;
+                                return [Math.max(0, dataMin - margin), dataMax + margin]
+                            }}
                             tickFormatter={(value) => {
                                 const cents = Number(value);
                                 return (cents / 100).toLocaleString("en-US", {
