@@ -9,7 +9,7 @@ function WebAppLayout() {
 
     return (
         <div className={"w-[80%] max-w-[1200px] min-w-[200px] mx-auto"}>
-            <div className={"flex justify-between flex-row my-6"}>
+            <div className={"flex justify-between flex-col gap-5 sm:flex-row sm:gap-0 my-6"}>
                 <Link className={"flex flex-row items-center gap-2 text-xl font-medium text-neutral-600"} to={"/dashboard"}>
                     {location.pathname !== "/dashboard" && <ChevronLeftIcon className={"size-6"} />}
                     AutoInvestor

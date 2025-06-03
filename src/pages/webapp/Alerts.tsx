@@ -50,7 +50,7 @@ function RecentAlerts() {
                 const asset = getAsset(alert.assetId);
                 return (
                     <Card className={"shadow-none"}>
-                        <div className={"flex flex-row gap-4 items-center px-5"}>
+                        <div className={"flex flex-row gap-4 items-center px-5 flex-wrap"}>
                             <div className={`rounded-xl ${
                                 alert.type === "BUY"
                                     ? "text-green-700 border-green-700/20"
