@@ -18,7 +18,7 @@ import {
     DrawerTitle,
     DrawerTrigger,
 } from "@/components/ui/drawer"
-import {Minus, Plus} from "lucide-react"
+import {Minus, Plus, TrendingDown, TrendingUp} from "lucide-react"
 
 import {
     Select,
@@ -36,11 +36,14 @@ import {DecisionHttpService} from "@/services/decision-http-service.ts";
 import {UsersHttpService} from "@/services/users-http-service.ts";
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip.tsx";
 import {Badge} from "@/components/ui/badge.tsx";
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card.tsx";
+import {Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle} from "@/components/ui/card.tsx";
 import {NewsItem} from "@/model/NewsItem.ts";
 import {Alert} from "@/model/Alert.ts";
 import {NewsHttpService} from "@/services/news-http-service.ts";
 import {AlertsHttpService} from "@/services/alerts-http-service.ts";
+import {ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent} from "@/components/ui/chart.tsx";
+import {CartesianGrid, Line, LineChart, XAxis, YAxis} from "recharts";
+import {addDays, startOfDay} from "date-fns";
 
 const portfolioHttpService = new PortfolioHttpService();
 const assetsHttpService = new AssetsHttpService();
@@ -135,6 +138,129 @@ function Summary() {
     )
 }
 
+interface ChartData {
+    date: string;
+    portfolio: number;
+}
+
+const chartConfig = {
+    portfolio: {
+        label: "Portfolio",
+        color: "hsl(var(--chart-blue-1))",
+    },
+} satisfies ChartConfig
+
+function ChartLineDots({ chartData }: { chartData: ChartData[] }) {
+    const calculatePerformance: <T, K extends keyof T = keyof T>(arr: T[], key: K extends keyof T ? (T[K] extends number ? K : never) : never) => number = (arr, key) => {
+        const first = arr.length > 0 ? arr[0] : undefined;
+        const last = arr.length > 0 ? arr[arr.length - 1] : undefined;
+        if (!first || !last) {
+            return 0;
+        }
+        const firstValue = first[key];
+        const lastValue = last[key];
+        if (typeof firstValue !== 'number' || typeof lastValue !== 'number') {
+            return 0;
+        }
+        return parseFloat(((lastValue - firstValue) / firstValue * 100).toFixed(2));
+    }
+
+    return (
+        <Card className={"shadow-none"}>
+            <CardHeader>
+                <CardTitle>Portfolio performance</CardTitle>
+                <CardDescription>Portfolio performance for the last week</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <ChartContainer config={chartConfig} className={"h-24 w-full"}>
+                    <LineChart
+                        accessibilityLayer
+                        data={chartData}
+                        margin={{
+                            left: 12,
+                            right: 12,
+                        }}
+                    >
+                        <CartesianGrid vertical={false}/>
+                        <XAxis
+                            dataKey="date"
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                            tickFormatter={(value) => {
+                                const date = new Date(value)
+                                return date.toLocaleDateString("en-US", {
+                                    month: "short",
+                                    day: "numeric",
+                                })
+                            }}
+                        />
+                        <YAxis
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                            tickFormatter={(value) => {
+                                const cents = Number(value);
+                                return (cents / 100).toLocaleString("en-US", {
+                                    style: "currency",
+                                    currency: "USD"
+                                })
+                            }}
+                        />
+                        <ChartTooltip
+                            cursor={false}
+                            content={<ChartTooltipContent
+                                formatter={(value, name) => (
+                                    <>
+                                        <div
+                                            className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
+                                            style={{backgroundColor: `var(--color-${name})`}}
+                                        />
+                                        {((chartConfig["name" as keyof typeof chartConfig]?.label || name) as string)
+                                            .replace(/^./, c => c.toUpperCase())}
+                                        <div
+                                            className="ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums text-foreground">
+                                            {(Number(value) / 100).toLocaleString("en-US", {
+                                                style: "currency",
+                                                currency: "USD"
+                                            })}
+                                        </div>
+                                    </>
+                                )}
+                            />}
+                        />
+                        <Line
+                            dataKey="portfolio"
+                            type="natural"
+                            stroke="var(--color-portfolio)"
+                            strokeWidth={2}
+                            dot={{
+                                fill: "var(--color-portfolio)",
+                            }}
+                            activeDot={{
+                                r: 6,
+                            }}
+                        />
+                    </LineChart>
+                </ChartContainer>
+            </CardContent>
+            <CardFooter className="flex-col items-start gap-2 text-sm">
+                <div className="flex gap-2 leading-none font-medium">
+                    Trending up by {calculatePerformance(chartData, "portfolio")}% this week {
+                    calculatePerformance(chartData, "portfolio") > 0
+                        ? <TrendingUp className="h-4 w-4"/>
+                        : <TrendingDown className="h-4 w-4"/>
+                }
+                </div>
+                <div className="text-muted-foreground leading-none">
+                    Showing total performance of the overall portfolio holdings
+                </div>
+            </CardFooter>
+        </Card>
+    )
+}
+
+
 interface AssetHolding {
     assetId: string;
     mic: string;
@@ -156,6 +282,7 @@ function toUSD(cents: number) {
 function Portfolio() {
     const [holdings, setHoldings] = useState<PortfolioHolding[]>([]);
     const [assetHoldings, setAssetHoldings] = useState<AssetHolding[]>([]);
+    const [performanceChartData, setPerformanceChartData] = useState<ChartData[]>([]);
 
     const percentageChange = (actual: number, original: number): string => {
         const numericChange = ((actual - original) / original) * 100;
@@ -183,6 +310,30 @@ function Portfolio() {
     const onDeleteHolding = async (assetId: string): Promise<void> => {
         await portfolioHttpService.deleteHolding(assetId);
         setHoldings(prevItems => prevItems.filter(item => item.assetId !== assetId));
+    }
+
+    const createPerformanceChartData = async (holdings: AssetHolding[]): Promise<ChartData[]> => {
+        const entryCollection: ChartData[] = [];
+
+        const sevenDaysAgo = startOfDay(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+        const end = startOfDay(new Date(Date.now()));
+        for (
+            let current = new Date(sevenDaysAgo);
+            current <= end;
+            current = addDays(current, 1)
+        ) {
+            const values = await Promise.all(holdings.map(async holding => {
+                const price = await assetsHttpService.getPrice(holding.assetId, current)
+                return price.price * holding.shares;
+            }))
+            const totalValue = values.reduce((acc, curr) => acc + curr, 0);
+            entryCollection.push({
+                date: current.toISOString().split('T')[0],
+                portfolio: totalValue
+            })
+        }
+
+        return entryCollection;
     }
 
     useEffect(() => {
@@ -214,6 +365,7 @@ function Portfolio() {
                 } as AssetHolding;
             }));
             setAssetHoldings(assets);
+            createPerformanceChartData(assets).then(setPerformanceChartData)
         }
 
         fetchInitialData().then();
@@ -221,7 +373,8 @@ function Portfolio() {
 
     return (
         <>
-            <Card className={"shadow-none box-border p-5"}>
+            <ChartLineDots chartData={performanceChartData}></ChartLineDots>
+            <Card className={"shadow-none box-border p-5 mt-5"}>
                 <div className={"flex flex-col gap-5 items-end"}>
                     <Table>
                         <TableHeader>

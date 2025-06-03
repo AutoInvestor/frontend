@@ -407,7 +407,6 @@ function DataChart<T extends BaseChartData>
                             tickLine={false}
                             axisLine={false}
                             tickMargin={8}
-                            tickCount={3}
                             tickFormatter={(value) => {
                                 const cents = Number(value);
                                 return (cents / 100).toLocaleString("en-US", {
