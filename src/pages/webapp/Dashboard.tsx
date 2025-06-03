@@ -52,7 +52,7 @@ const decisionHttpService = new DecisionHttpService();
 
 function Dashboard() {
     return (
-        <div className={"flex flex-col lg:flex-row gap-5"}>
+        <div className={"flex flex-col lg:flex-row gap-5 pb-5"}>
             <div className={"lg:flex-2"}>
                 <Portfolio/>
             </div>
@@ -384,8 +384,14 @@ function Portfolio() {
     return (
         <>
             <ChartLineDots chartData={performanceChartData}></ChartLineDots>
-            <Card className={"shadow-none box-border p-5 mt-5"}>
-                <div className={"flex flex-col gap-5 items-end"}>
+            <Card className={"shadow-none box-border mt-5"}>
+                <CardHeader>
+                    <CardTitle>Portfolio management</CardTitle>
+                    <CardDescription>
+                        Manage the holdings of your portfolio
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -464,11 +470,12 @@ function Portfolio() {
                             </TableRow>
                         </TableFooter>
                     </Table>
-                </div>
+                </CardContent>
             </Card>
-            <Card className={"shadow-none box-border mt-5"}>
+            <Card className={"shadow-none box-border mt-5 "}>
                 <CardHeader>
                     <CardTitle>Add new asset to portfolio</CardTitle>
+                    <CardDescription>Choose an asset and specify how many shares you bought and at what price</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <HoldingCreator onSubmit={onAddHolding}></HoldingCreator>

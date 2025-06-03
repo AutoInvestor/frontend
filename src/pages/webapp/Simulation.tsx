@@ -17,7 +17,6 @@ import {DatePickerRange} from "@/components/DatePickerRange.tsx";
 import {DateRange} from "react-day-picker";
 import {addDays, endOfDay, isWithinInterval, startOfDay} from "date-fns";
 import {ToggleGroup, ToggleGroupItem} from "@/components/ui/toggle-group.tsx";
-import {LoadingLayer} from "@/components/LoadingLayer.tsx";
 
 const portfolioHttpService = new PortfolioHttpService();
 const assetsHttpService = new AssetsHttpService();
@@ -84,14 +83,51 @@ function SimulationConfig({setSimulationConfig}: {
     }
 
     return (
-        <Card className={"shadow-none box-border py-6"}>
-            <div className={"box-border p-5"}>
-                <div className={""}>
-                    <p className={"font-semibold pb-2"}>Time period</p>
+        <div className={"flex flex-col gap-5"}>
+            <Card className={"shadow-none"}>
+                <CardHeader>
+                    <CardTitle>Time period</CardTitle>
+                    <CardDescription>Select the start and end dates for the simulation</CardDescription>
+                </CardHeader>
+                <CardContent>
                     <DatePickerRange value={dateRange} onValueChange={setDateRange}/>
-                </div>
-                <div className={"mt-4"}>
-                    <p className={"font-semibold pb-2"}>Risk profile</p>
+                </CardContent>
+            </Card>
+            <Card className={"shadow-none"}>
+                <CardHeader>
+                    <CardTitle>Assets selection</CardTitle>
+                    <CardDescription>Select the assets to be included in the simulation</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className={"flex gap-y-4 flex-col"}>
+                        <div className={"flex flex-row gap-4 items-center"}>
+                            <div className={"rounded-xl bg-neutral-100 w-fit box-border p-3"}>
+                                <WalletIcon className={"size-6"}/>
+                            </div>
+                            <div className={"flex-1"}>
+                                <p>Current portfolio</p>
+                                <p className={"font-light text-neutral-500 pt-1"}>All assets in your current
+                                    portfolio</p>
+                            </div>
+                            <div className={"text-neutral-500"}>
+                                <Switch
+                                    onCheckedChange={event => event ? addPortfolioHoldings() : removePortfolioHoldings()}/>
+                            </div>
+                        </div>
+                    </div>
+                    {simulationItems.length > 0 && (
+                        <Badge variant="secondary" className={"mt-2"}>
+                            {simulationItems.length} assets selected
+                        </Badge>
+                    )}
+                </CardContent>
+            </Card>
+            <Card className={"shadow-none"}>
+                <CardHeader>
+                    <CardTitle>Risk profile</CardTitle>
+                    <CardDescription>Select the risk profile to use in the simulation</CardDescription>
+                </CardHeader>
+                <CardContent>
                     <ToggleGroup
                         size="lg"
                         type="single"
@@ -117,47 +153,23 @@ function SimulationConfig({setSimulationConfig}: {
                         {riskLevel === 3 && "Aggressive"}
                         {riskLevel === 4 && "Very aggressive"}
                     </Badge>
-                </div>
-                <div className={"mt-4"}>
-                    <p className={"font-semibold pb-2"}>Assets selection</p>
-                    <div className={"flex gap-y-4 flex-col"}>
-                        <div className={"flex flex-row gap-4 items-center"}>
-                            <div className={"rounded-xl bg-neutral-100 w-fit box-border p-3"}>
-                                <WalletIcon className={"size-6"}/>
-                            </div>
-                            <div className={"flex-1"}>
-                                <p>Current portfolio</p>
-                                <p className={"font-light text-neutral-500 pt-1"}>All assets in your current portfolio</p>
-                            </div>
-                            <div className={"text-neutral-500"}>
-                                <Switch
-                                    onCheckedChange={event => event ? addPortfolioHoldings() : removePortfolioHoldings()}/>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div className={"mt-4"}>
-                    <Button className={"block mb-2 cursor-pointer"}
-                            disabled={simulationItems.length === 0 || !dateRange}
-                            onClick={() => {
-                                if (!dateRange?.from || !dateRange?.to) return;
-                                setSimulationConfig({
-                                    fromDate: dateRange.from,
-                                    toDate: dateRange.to,
-                                    riskLevel: riskLevel,
-                                    simulationItems: simulationItems
-                                })
-                            }}>
-                        Run simulation
-                    </Button>
-                    {simulationItems.length > 0 && (
-                        <Badge variant="outline">
-                            {simulationItems.length} assets selected
-                        </Badge>
-                    )}
-                </div>
-            </div>
-        </Card>
+                </CardContent>
+            </Card>
+            <hr/>
+            <Button className={"block mb-2 cursor-pointer"}
+                    disabled={simulationItems.length === 0 || !dateRange}
+                    onClick={() => {
+                        if (!dateRange?.from || !dateRange?.to) return;
+                        setSimulationConfig({
+                            fromDate: dateRange.from,
+                            toDate: dateRange.to,
+                            riskLevel: riskLevel,
+                            simulationItems: simulationItems
+                        })
+                    }}>
+                Run simulation
+            </Button>
+        </div>
     )
 }
 
@@ -285,19 +297,26 @@ function SimulationResults({simulationConfig}: {
 
     return (
         <>
-            {isLoading && <LoadingLayer/>}
-            {simulationConfig && <div>
-                <DataChart
-                    data={chartData}
-                    filterBy={(item) => {
-                        return item.select
-                    }}
-                    sortByFilterBy={(a, b) => {
-                        if (a === "Overview") return -1;
-                        if (b === "Overview") return 1;
-                        return a.localeCompare(b);
-                    }}/>
-            </div>}
+            {isLoading &&
+                <div className="w-full flex items-center justify-center h-full">
+                    <div
+                        className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+            }
+            {simulationConfig && !isLoading &&
+                <div>
+                    <DataChart
+                        data={chartData}
+                        filterBy={(item) => {
+                            return item.select
+                        }}
+                        sortByFilterBy={(a, b) => {
+                            if (a === "Overview") return -1;
+                            if (b === "Overview") return 1;
+                            return a.localeCompare(b);
+                        }}/>
+                </div>
+            }
         </>
     )
 }
@@ -408,7 +427,7 @@ function DataChart<T extends BaseChartData>
                             axisLine={false}
                             tickMargin={8}
                             domain={([dataMin, dataMax]) => {
-                                const margin = (dataMax - dataMin)/10;
+                                const margin = (dataMax - dataMin) / 10;
                                 return [Math.max(0, dataMin - margin), dataMax + margin]
                             }}
                             tickFormatter={(value) => {
