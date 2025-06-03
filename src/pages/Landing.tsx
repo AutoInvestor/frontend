@@ -16,9 +16,9 @@ import {TrendingUp} from "lucide-react";
 
 function Landing() {
     return (
-        <div className={"w-screen h-screen bg-neutral-100"}>
+        <div className={"w-screen min-h-screen bg-neutral-100"}>
             <div
-                className={"w-[80%] max-w-[1200px] min-w-[200px] mx-auto h-screen flex flex-row items-center justify-center gap-5"}>
+                className={"w-[80%] max-w-[1200px] min-w-[200px] mx-auto min-h-screen flex flex-col py-24 lg:py-0 lg:flex-row lg:items-center lg:justify-center gap-5"}>
                 <div className={"flex-1"}>
                     <Jumbotron/>
                 </div>
@@ -66,7 +66,7 @@ function KeyFeatures() {
 
     return (
         <>
-            <div className={"grid grid-cols-2 gap-5"}>
+            <div className={"grid grid-cols-1 sm:grid-cols-2 gap-5"}>
                 {cards.map((card) => (
                     <Card className={"bg-white shadow-none"}>
                         <CardHeader>

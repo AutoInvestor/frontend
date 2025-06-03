@@ -52,11 +52,11 @@ const decisionHttpService = new DecisionHttpService();
 
 function Dashboard() {
     return (
-        <div className={"flex flex-row gap-5"}>
-            <div className={"flex-2"}>
+        <div className={"flex flex-col lg:flex-row gap-5"}>
+            <div className={"lg:flex-2"}>
                 <Portfolio/>
             </div>
-            <div className={"flex-1"}>
+            <div className={"lg:flex-1"}>
                 <Summary/>
             </div>
         </div>
