@@ -102,7 +102,7 @@ function Summary() {
     return (
         <div className={"flex flex-col gap-5"}>
             <Card onClick={() => navigate("/news")}
-                  className={"md:flex-1 bg-neutral-100 shadow-none border-none cursor-pointer"}>
+                  className={"md:flex-1 bg-neutral-100 shadow-none hover:inset-ring-1 hover:inset-ring-neutral-200 border-none cursor-pointer"}>
                 <CardHeader>
                     <div className={"rounded-full bg-neutral-200 w-fit box-border p-3"}>
                         <NewspaperIcon className={"size-6"}/>
@@ -115,7 +115,7 @@ function Summary() {
                 </CardHeader>
             </Card>
             <Card onClick={() => navigate("/alerts")}
-                  className={"md:flex-1 bg-neutral-100 shadow-none border-none cursor-pointer"}>
+                  className={"md:flex-1 bg-neutral-100 shadow-none hover:inset-ring-1 hover:inset-ring-neutral-200 border-none cursor-pointer"}>
                 <CardHeader>
                     <div className={"rounded-full bg-neutral-200 w-fit box-border p-3"}>
                         <ExclamationTriangleIcon className={"size-6"}/>

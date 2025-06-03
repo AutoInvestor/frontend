@@ -6,16 +6,9 @@ import {PortfolioHttpService} from "@/services/portfolio-http-service.ts";
 import {AssetsHttpService} from "@/services/assets-http-service.ts";
 import {Badge} from "@/components/ui/badge.tsx";
 
-import {Area, AreaChart, CartesianGrid, XAxis, YAxis} from "recharts"
+import {CartesianGrid, Line, LineChart, XAxis, YAxis} from "recharts"
 import {Card, CardContent, CardDescription, CardHeader, CardTitle,} from "@/components/ui/card"
-import {
-    ChartConfig,
-    ChartContainer,
-    ChartLegend,
-    ChartLegendContent,
-    ChartTooltip,
-    ChartTooltipContent,
-} from "@/components/ui/chart"
+import {ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent,} from "@/components/ui/chart"
 import {Decision} from "@/model/Decision.ts";
 import {DecisionHttpService} from "@/services/decision-http-service.ts";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
@@ -57,7 +50,7 @@ function Simulation() {
     const [simulationConfig, setSimulationConfig] = useState<SimulationConfig>();
 
     return (
-        <div className={"flex flex-row gap-5"}>
+        <div className={"flex flex-col lg:flex-row gap-5"}>
             <div className={"flex-1"}>
                 <SimulationConfig setSimulationConfig={setSimulationConfig}/>
             </div>
@@ -387,7 +380,14 @@ function DataChart<T extends BaseChartData>
                     config={chartConfig}
                     className="aspect-auto h-[250px] w-full"
                 >
-                    <AreaChart data={filteredData}>
+                    <LineChart
+                        accessibilityLayer
+                        data={filteredData}
+                        margin={{
+                            left: 12,
+                            right: 12,
+                        }}
+                    >
                         <CartesianGrid vertical={false}/>
                         <XAxis
                             dataKey="date"
@@ -407,6 +407,10 @@ function DataChart<T extends BaseChartData>
                             tickLine={false}
                             axisLine={false}
                             tickMargin={8}
+                            domain={([dataMin, dataMax]) => {
+                                const margin = (dataMax - dataMin)/10;
+                                return [Math.max(0, dataMin - margin), dataMax + margin]
+                            }}
                             tickFormatter={(value) => {
                                 const cents = Number(value);
                                 return (cents / 100).toLocaleString("en-US", {
@@ -417,72 +421,51 @@ function DataChart<T extends BaseChartData>
                         />
                         <ChartTooltip
                             cursor={false}
-                            content={
-                                <ChartTooltipContent
-                                    formatter={(value, name) => (
-                                        <>
-                                            <div
-                                                className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
-                                                style={{backgroundColor: `var(--color-${name})`}}
-                                            />
-                                            {chartConfig[name as keyof typeof chartConfig]?.label || name}
-                                            <div
-                                                className="ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums text-foreground">
-                                                {(Number(value) / 100).toLocaleString("en-US", {
-                                                    style: "currency",
-                                                    currency: "USD"
-                                                })}
-                                            </div>
-                                        </>
-                                    )}
-                                    indicator="dot"
-                                />
-                            }
+                            content={<ChartTooltipContent
+                                formatter={(value, name) => (
+                                    <>
+                                        <div
+                                            className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
+                                            style={{backgroundColor: `var(--color-${name})`}}
+                                        />
+                                        {((chartConfig["name" as keyof typeof chartConfig]?.label || name) as string)
+                                            .replace(/^./, c => c.toUpperCase())}
+                                        <div
+                                            className="ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums text-foreground">
+                                            {(Number(value) / 100).toLocaleString("en-US", {
+                                                style: "currency",
+                                                currency: "USD"
+                                            })}
+                                        </div>
+                                    </>
+                                )}
+                            />}
                         />
-                        <defs>
-                            <linearGradient id="fillAutoinvested" x1="0" y1="0" x2="0" y2="1">
-                                <stop
-                                    offset="5%"
-                                    stopColor="var(--color-autoinvested)"
-                                    stopOpacity={0.8}
-                                />
-                                <stop
-                                    offset="95%"
-                                    stopColor="var(--color-autoinvested)"
-                                    stopOpacity={0.1}
-                                />
-                            </linearGradient>
-                            <linearGradient id="fillNoAutoinvested" x1="0" y1="0" x2="0" y2="1">
-                                <stop
-                                    offset="5%"
-                                    stopColor="var(--color-noAutoinvested)"
-                                    stopOpacity={0.8}
-                                />
-                                <stop
-                                    offset="95%"
-                                    stopColor="var(--color-noAutoinvested)"
-                                    stopOpacity={0.1}
-                                />
-                            </linearGradient>
-                        </defs>
-                        <Area
+                        <Line
                             dataKey="autoinvested"
                             type="natural"
-                            fill="url(#fillAutoinvested)"
-                            fillOpacity={0.4}
                             stroke="var(--color-autoinvested)"
-                            stackId="a"
+                            strokeWidth={2}
+                            dot={{
+                                fill: "var(--color-autoinvested)",
+                            }}
+                            activeDot={{
+                                r: 6,
+                            }}
                         />
-                        <Area
+                        <Line
                             dataKey="noAutoinvested"
                             type="natural"
-                            fill="url(#fillNoAutoinvested)"
-                            fillOpacity={0.4}
                             stroke="var(--color-noAutoinvested)"
-                            stackId="b"
+                            strokeWidth={2}
+                            dot={{
+                                fill: "var(--color-noAutoinvested)",
+                            }}
+                            activeDot={{
+                                r: 6,
+                            }}
                         />
-                        <ChartLegend content={<ChartLegendContent/>}/>
-                    </AreaChart>
+                    </LineChart>
                 </ChartContainer>
             </CardContent>
         </Card>
