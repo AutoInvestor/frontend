@@ -126,7 +126,7 @@ function Summary() {
                         </div>
                         <ChevronRightIcon className={"size-6 inline-block opacity-0 translate-x-[-0.5rem] group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 ease-in-out"} />
                     </div>
-                    <CardTitle className={"pt-3"}>Title</CardTitle>
+                    <CardTitle className={"pt-3"}>Alerts</CardTitle>
                     <CardDescription>
                         <p>{alerts.filter(item => isToday(item.date)).length} alerts in the last day</p>
                         <p>Latest: {
