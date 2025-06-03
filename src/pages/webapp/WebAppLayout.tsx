@@ -8,24 +8,26 @@ function WebAppLayout() {
     const location = useLocation();
 
     return (
-        <div className={"w-[80%] max-w-[1200px] min-w-[200px] mx-auto"}>
-            <div className={"flex justify-between flex-col gap-5 sm:flex-row sm:gap-0 my-6"}>
-                <Link className={"flex flex-row items-center gap-2 text-xl font-medium text-neutral-600"} to={"/dashboard"}>
-                    {location.pathname !== "/dashboard" && <ChevronLeftIcon className={"size-6"} />}
-                    AutoInvestor
-                </Link>
-                <div className={"flex flex-row gap-4"}>
-                    <Button className={"cursor-pointer"} onClick={() => navigate("/simulation")}>
-                        <PlayIcon className={"size-4"}></PlayIcon>
-                        <span className={"ms-2"}>Simulate</span>
-                    </Button>
-                    <Link className={"flex text-lg font-medium items-center"} to={"/profile"}>
-                        <UserIcon className={"size-4"}></UserIcon>
-                        <span className={"ms-2"}>Profile</span>
+        <div className={"w-full min-h-screen bg-neutral-100"}>
+            <div className={"w-[80%] max-w-[1200px] min-w-[200px] mx-auto"}>
+                <div className={"flex justify-between flex-col gap-5 sm:flex-row sm:gap-0 py-6"}>
+                    <Link className={"flex flex-row items-center gap-2 text-xl font-medium text-neutral-600"} to={location.pathname === "/dashboard" ? "/" : "/dashboard"}>
+                        {location.pathname !== "/dashboard" && <ChevronLeftIcon className={"size-6"} />}
+                        AutoInvestor
                     </Link>
+                    <div className={"flex flex-row gap-4"}>
+                        <Button className={"cursor-pointer"} onClick={() => navigate("/simulation")}>
+                            <PlayIcon className={"size-4"}></PlayIcon>
+                            <span className={"ms-2"}>Simulate</span>
+                        </Button>
+                        <Link className={"flex text-lg font-medium items-center"} to={"/profile"}>
+                            <UserIcon className={"size-4"}></UserIcon>
+                            <span className={"ms-2"}>Profile</span>
+                        </Link>
+                    </div>
                 </div>
+                <Outlet></Outlet>
             </div>
-            <Outlet></Outlet>
         </div>
     )
 }

@@ -6,7 +6,7 @@ import {AssetsHttpService} from "@/services/assets-http-service.ts";
 import {Asset} from "@/model/Asset.ts";
 import {useNavigate} from 'react-router-dom';
 
-import {ExclamationTriangleIcon, NewspaperIcon, PencilIcon,} from "@heroicons/react/16/solid";
+import {ChevronRightIcon, ExclamationTriangleIcon, NewspaperIcon, PencilIcon,} from "@heroicons/react/16/solid";
 
 import {
     Drawer,
@@ -102,10 +102,13 @@ function Summary() {
     return (
         <div className={"flex flex-col gap-5"}>
             <Card onClick={() => navigate("/news")}
-                  className={"md:flex-1 bg-neutral-100 shadow-none hover:inset-ring-1 hover:inset-ring-neutral-200 border-none cursor-pointer"}>
+                  className={"group md:flex-1 shadow-none cursor-pointer"}>
                 <CardHeader>
-                    <div className={"rounded-full bg-neutral-200 w-fit box-border p-3"}>
-                        <NewspaperIcon className={"size-6"}/>
+                    <div className="flex items-center pt-3 gap-2">
+                        <div className={"rounded-full bg-neutral-200 w-fit box-border p-3"}>
+                            <NewspaperIcon className={"size-6"}/>
+                        </div>
+                        <ChevronRightIcon className={"size-6 inline-block opacity-0 translate-x-[-0.5rem] group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 ease-in-out"} />
                     </div>
                     <CardTitle className={"pt-3"}>Market news</CardTitle>
                     <CardDescription>
@@ -115,10 +118,13 @@ function Summary() {
                 </CardHeader>
             </Card>
             <Card onClick={() => navigate("/alerts")}
-                  className={"md:flex-1 bg-neutral-100 shadow-none hover:inset-ring-1 hover:inset-ring-neutral-200 border-none cursor-pointer"}>
+                  className={"group md:flex-1 shadow-none cursor-pointer"}>
                 <CardHeader>
-                    <div className={"rounded-full bg-neutral-200 w-fit box-border p-3"}>
-                        <ExclamationTriangleIcon className={"size-6"}/>
+                    <div className="flex items-center pt-3 gap-2">
+                        <div className={"rounded-full bg-neutral-200 w-fit box-border p-3"}>
+                            <ExclamationTriangleIcon className={"size-6"}/>
+                        </div>
+                        <ChevronRightIcon className={"size-6 inline-block opacity-0 translate-x-[-0.5rem] group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 ease-in-out"} />
                     </div>
                     <CardTitle className={"pt-3"}>Title</CardTitle>
                     <CardDescription>
@@ -150,7 +156,7 @@ const chartConfig = {
     },
 } satisfies ChartConfig
 
-function ChartLineDots({ chartData }: { chartData: ChartData[] }) {
+function ChartLineDots({chartData}: { chartData: ChartData[] }) {
     const calculatePerformance: <T, K extends keyof T = keyof T>(arr: T[], key: K extends keyof T ? (T[K] extends number ? K : never) : never) => number = (arr, key) => {
         const first = arr.length > 0 ? arr[0] : undefined;
         const last = arr.length > 0 ? arr[arr.length - 1] : undefined;
@@ -200,7 +206,7 @@ function ChartLineDots({ chartData }: { chartData: ChartData[] }) {
                             axisLine={false}
                             tickMargin={8}
                             domain={([dataMin, dataMax]) => {
-                                const margin = (dataMax - dataMin)/10;
+                                const margin = (dataMax - dataMin) / 10;
                                 return [Math.max(0, dataMin - margin), dataMax + margin]
                             }}
                             tickFormatter={(value) => {
